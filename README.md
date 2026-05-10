@@ -67,7 +67,7 @@ cd backend
 npm install
 npx wrangler d1 execute vehicle-catalog --local --file=db/schema.sql
 npx wrangler d1 execute vehicle-catalog --local --file=db/seed.sql
-npm run dev:local   # starts on port 9174
+npm run dev:local   # starts on port 9743
 
 # Client (terminal 2)
 cd client

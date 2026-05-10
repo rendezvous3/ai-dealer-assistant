@@ -2,8 +2,9 @@ name = "dealer-chat-backend"
 main = "src/index.ts"
 compatibility_date = "2025-11-24"
 
+# PORT: 9743 — dealer POC backend (see CLAUDE.md § Port Registry for convention)
 [dev]
-port = 9174
+port = 9743
 
 [vars]
 PROFILE_TYPE = "MERCHANT"

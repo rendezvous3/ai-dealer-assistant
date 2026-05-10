@@ -1,5 +1,28 @@
 # AI Dealer Assistant
 
+## Port Registry — Read First When Cloning
+
+Each POC in this workspace owns a fixed port. **Never change a port without updating both wrangler.toml and this table.** When starting a new POC, pick the next unused `97xx` port and register it here before writing any code.
+
+| Service | Port | Config file |
+|---------|------|-------------|
+| **Dealer backend** (`dealer-chat-backend`) | **9743** | `backend/wrangler.toml` |
+| Dashboard analytics API | 9184 | `dashboard/api/wrangler.toml` |
+| Client widget (Vite) | 5173 | Vite default |
+| Dashboard UI (Vite) | 5174 | Vite default |
+
+**Wine POC ports (for reference — do not reuse):**
+| Wine backend | 9174 | `wine-poc/backend/wrangler.toml` |
+
+**Clone checklist — run before `npm run dev:local`:**
+```bash
+lsof -ti :9743 | xargs kill -9 2>/dev/null; echo "port 9743 clear"
+```
+
+**Next available POC port: 9753** (register it here when you use it)
+
+---
+
 ## Local Terminal Note
 
 On this Mac, `node`, `npm`, `npx`, and `wrangler` may be missing in a fresh terminal until `nvm` is activated. Before running any Node/Wrangler command in a new terminal, run:

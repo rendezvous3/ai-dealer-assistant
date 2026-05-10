@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --remote",
+    "dev": "wrangler dev --remote --port 9743",
     "deploy": "wrangler deploy",
     "catalog:import": "node scripts/import-catalog.mjs --format json",
-    "dev:remote": "wrangler dev --remote",
-    "dev:local": "wrangler dev"
+    "dev:remote": "wrangler dev --remote --port 9743",
+    "dev:local": "wrangler dev --port 9743"
   },
   "dependencies": {
     "hono": "^4.6.0"
