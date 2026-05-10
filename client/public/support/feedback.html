@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Send Feedback | Cannavita Budtender</title>
+    <style>
+      :root {
+        --bg: #f7f4ee;
+        --surface: #ffffff;
+        --text: #1f2a25;
+        --muted: #55645e;
+        --accent: #15685e;
+        --border: #d8e2dc;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 0% 0%, #70ccc11f 0%, transparent 35%), var(--bg);
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 48px auto;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 28px;
+      }
+      h1 { margin: 0 0 8px; font-size: 1.8rem; }
+      p { color: var(--muted); }
+      form {
+        margin-top: 18px;
+        display: grid;
+        gap: 12px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-weight: 600;
+        color: #2b3a34;
+      }
+      input, textarea, select {
+        width: 100%;
+        border: 1px solid #c8d5cf;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font: inherit;
+      }
+      textarea { min-height: 140px; resize: vertical; }
+      .screenshot-preview {
+        display: none;
+        margin-top: 6px;
+        gap: 8px;
+      }
+      .screenshot-preview img {
+        max-width: 100%;
+        max-height: 220px;
+        object-fit: contain;
+        border-radius: 10px;
+        border: 1px solid #c8d5cf;
+        background: #f4f7f6;
+      }
+      .screenshot-preview button {
+        width: fit-content;
+        padding: 8px 12px;
+        border: 1px solid #c8d5cf;
+        border-radius: 8px;
+        background: #fff;
+        color: #2b3a34;
+      }
+      button {
+        width: fit-content;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 16px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover { filter: brightness(1.05); }
+      .small { margin-top: 14px; font-size: 0.92rem; color: var(--muted); }
+      .success {
+        display: none;
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #edf9f5;
+        border: 1px solid #b6e4d3;
+        color: #225f4e;
+      }
+      .error {
+        display: none;
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #fff2f0;
+        border: 1px solid #f1b9b2;
+        color: #8d2e22;
+      }
+      .show { display: block; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Send Feedback</h1>
+      <p>
+        Share bugs, safety concerns, confusing answers, or product suggestion quality issues.
+        Your input helps improve this experimental AI budtender.
+      </p>
+
+      <form id="feedbackForm">
+        <label>
+          Name (optional)
+          <input type="text" id="name" name="name" autocomplete="name" />
+        </label>
+
+        <label>
+          Email (optional)
+          <input type="email" id="email" name="email" autocomplete="email" />
+        </label>
+
+        <label>
+          Feedback type
+          <select id="type" name="type" required>
+            <option value="bug">Bug report</option>
+            <option value="quality">Recommendation quality</option>
+            <option value="safety">Safety/medical concern</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+
+        <label>
+          Message
+          <textarea id="message" name="message" required placeholder="Tell us what happened and what should have happened instead."></textarea>
+        </label>
+
+        <label>
+          Screenshot (optional)
+          <input type="file" id="screenshot" name="screenshot" accept="image/*" />
+          <span class="small">Optional screenshot will be attached to your feedback email.</span>
+        </label>
+
+        <div id="screenshotPreview" class="screenshot-preview">
+          <img id="screenshotImage" alt="Screenshot preview" />
+          <button type="button" id="removeScreenshot">Remove screenshot</button>
+        </div>
+
+        <button type="submit" id="submitButton">Send Feedback</button>
+      </form>
+
+      <div id="success" class="success">Thanks, your feedback has been sent successfully.</div>
+      <div id="error" class="error">Unable to send feedback right now.</div>
+
+      <p class="small">
+        We review every submission and use this to improve assistant quality and safety.
+      </p>
+    </main>
+
+    <script>
+      const form = document.getElementById('feedbackForm');
+      const success = document.getElementById('success');
+      const error = document.getElementById('error');
+      const submitButton = document.getElementById('submitButton');
+      const screenshotInput = document.getElementById('screenshot');
+      const screenshotPreview = document.getElementById('screenshotPreview');
+      const screenshotImage = document.getElementById('screenshotImage');
+      const removeScreenshot = document.getElementById('removeScreenshot');
+      const params = new URLSearchParams(window.location.search);
+      const hostname = window.location.hostname;
+      const defaultApiBase =
+        hostname === 'localhost' || hostname === '127.0.0.1'
+          ? 'http://localhost:8787'
+          : hostname.includes('-qa.')
+            ? 'https://ecom-chat-backend-qa.andresmeona.workers.dev'
+            : 'https://ecom-chat-backend.andresmeona.workers.dev';
+      const rawApiBase = params.get('api') || defaultApiBase;
+      const apiBase = rawApiBase.replace(/\/chat\/?$/, '').replace(/\/$/, '');
+      const source = params.get('source') || 'external-page';
+      const store = params.get('store') || window.location.hostname || 'unknown-store';
+      let screenshotUrl = '';
+      let submitting = false;
+
+      function clearScreenshot() {
+        if (screenshotUrl) URL.revokeObjectURL(screenshotUrl);
+        screenshotUrl = '';
+        screenshotInput.value = '';
+        screenshotImage.removeAttribute('src');
+        screenshotPreview.style.display = 'none';
+      }
+
+      screenshotInput.addEventListener('change', () => {
+        const file = screenshotInput.files && screenshotInput.files[0] ? screenshotInput.files[0] : null;
+        if (!file) {
+          clearScreenshot();
+          return;
+        }
+        if (screenshotUrl) URL.revokeObjectURL(screenshotUrl);
+        screenshotUrl = URL.createObjectURL(file);
+        screenshotImage.src = screenshotUrl;
+        screenshotPreview.style.display = 'grid';
+      });
+
+      removeScreenshot.addEventListener('click', clearScreenshot);
+
+      function setSubmitting(next) {
+        submitting = next;
+        submitButton.disabled = next;
+        submitButton.textContent = next ? 'Sending...' : 'Send Feedback';
+        for (const el of form.querySelectorAll('input, textarea, select, button')) {
+          if (el.id === 'removeScreenshot' && !screenshotInput.files?.[0]) continue;
+          el.disabled = next;
+        }
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (submitting) return;
+
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const type = document.getElementById('type').value;
+        const message = document.getElementById('message').value.trim();
+        const screenshotFile = screenshotInput.files && screenshotInput.files[0] ? screenshotInput.files[0] : null;
+        success.classList.remove('show');
+        error.classList.remove('show');
+
+        if (!message) {
+          error.textContent = 'Please add a message before sending feedback.';
+          error.classList.add('show');
+          return;
+        }
+
+        try {
+          setSubmitting(true);
+
+          const formData = new FormData();
+          formData.set('name', name);
+          formData.set('email', email);
+          formData.set('type', type);
+          formData.set('message', message);
+          formData.set('store', store);
+          formData.set('source', source);
+          formData.set('pageUrl', window.location.href);
+          formData.set('userAgent', navigator.userAgent);
+          if (screenshotFile) {
+            formData.set('screenshot', screenshotFile);
+          }
+
+          const resp = await fetch(`${apiBase}/feedback`, {
+            method: 'POST',
+            body: formData
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok || !data?.ok) {
+            throw new Error(data?.message || data?.error || 'Unable to send feedback right now.');
+          }
+
+          form.reset();
+          clearScreenshot();
+          success.classList.add('show');
+        } catch (err) {
+          error.textContent = err instanceof Error ? err.message : 'Unable to send feedback right now.';
+          error.classList.add('show');
+        } finally {
+          setSubmitting(false);
+        }
+      });
+    </script>
+  </body>
+</html>

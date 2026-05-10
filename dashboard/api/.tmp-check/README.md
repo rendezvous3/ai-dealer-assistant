@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "wine-chat-analytics-api" generated at 2026-05-09T04:12:22.404Z.

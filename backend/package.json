@@ -1,0 +1,22 @@
+{
+  "name": "wine-chat-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --remote",
+    "deploy": "wrangler deploy",
+    "catalog:import": "node scripts/import-catalog.mjs --format json",
+    "dev:remote": "wrangler dev --remote",
+    "dev:local": "wrangler dev"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251125.0",
+    "@types/node": "^24.10.2",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.50.0"
+  }
+}

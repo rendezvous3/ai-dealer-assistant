@@ -1,0 +1,12 @@
+name = "wine-chat-analytics-api"
+main = "src/index.ts"
+compatibility_date = "2025-11-24"
+
+[dev]
+port = 9184
+
+# Read-only dashboard API. Uses the same analytics database the chatbot backend writes to.
+[[d1_databases]]
+binding = "ANALYTICS_DB"
+database_name = "wine-chat-analytics"
+database_id = "64d58a3a-ed1c-4ec2-b871-eee1adbb69dd"

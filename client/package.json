@@ -1,0 +1,20 @@
+{
+  "name": "ecom-chat-widget",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "vite build --mode development",
+    "build:qa": "vite build --mode qa",
+    "build:prod": "vite build --mode production",
+    "build": "vite build --mode production",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.1.0",
+    "@types/node": "^24.10.2",
+    "svelte": "^5.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}

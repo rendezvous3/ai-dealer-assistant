@@ -1,0 +1,308 @@
+---
+alwaysApply: true
+---
+# Cannavita AI Budtender Widget - Cursor Rules
+
+## Project Overview
+
+Production-grade embeddable AI shopping assistant widget for cannabis dispensaries (Cannavita). Svelte 5 + TypeScript + Hono + Cloudflare Workers + Vectorize RAG.
+
+**4 Components**: Vectorizer (Python) | Backend API (TypeScript/Hono) | Frontend Widget (Svelte 5) | Component Library (Svelte 5)
+
+## Technology Stack
+
+- **Frontend**: Svelte 5 (runes), TypeScript, Vite → Embeddable widget (`widget.js`)
+- **Backend**: Hono, Cloudflare Workers, LangChain → Serverless API
+- **Vector DB**: Cloudflare Vectorize (1024-dim, cosine similarity)
+- **Embeddings**: Cloudflare Workers AI (`@cf/baai/bge-large-en-v1.5`)
+- **LLM**: Groq Llama 3.3 70B (stream) / Cerebras qwen-3-32b (intent, rerank)
+- **Persistence**: localStorage (client-side conversation state)
+
+## API Execution Flow
+
+### Complete Recommendation Flow
+
+**User Query** → `/chat/intent` → **UI Decision** → `/chat/recommendations` OR `/chat/stream`
+
+**1. Intent Classification** (`POST /chat/intent`):
+- Triggered by CODEX cue from stream (not polled on every message)
+- Parses CODEX summary (strict field-order: `[Potency] [Effects] [Type] [Category] [Subcategory] [, Flavor]`)
+- Applies HYDE type inference (effect words → strain type) and Two-Step Potency Gate (potency words → THC range, scoped by category)
+- Classifies: `recommendation` | `product-question` | `general`
+- Extracts structured filters: `category`, `type`, `effects`, `thc_percentage_min/max`, `thc_per_unit_mg_min/max`, etc.
+- Returns: `{ intent, filters, semantic_search, product_query }`
+
+**2. UI Decision**:
+- `recommendation` → Call `/chat/recommendations`
+- `product-question` → Two-phase lookup (fuzzy match history → `/product-lookup` semantic search)
+- `general` → Stream via `/chat/stream`
+
+**3. Hybrid RAG** (`POST /chat/recommendations`):
+- **Metadata Filtering**: category, type, subcategory, brand, price, thc_percentage, inStock
+- **Semantic Search**: Embedding similarity with semantic_search query
+- **LLM Re-ranking**: Cerebras qwen-3-32b evaluates top 10 for effects match, contradictions, relevance
+- Returns: Top 3-5 ranked products
+
+**4. Stream** (`POST /chat/stream`):
+- Streams conversation with Maitre D role (Groq Llama 3.3 70B)
+- Handles general questions, product context, clarifications
+- Uses SSE for zero first-token cutoffs
+- Emits CODEX cues when recommendation intent detected (trigger phrase + structured summary)
+
+### CODEX + HYDE + Potency Gate
+
+**CODEX Cue System**: Stream (70B) emits a trigger phrase + structured summary when it detects a complete recommendation query. Frontend detects the phrase and fires `/chat/intent`. The summary follows strict field-order — only mentioned fields included, type never inferred in stream.
+
+**Summary format:** `[Potency word] [Effect words] [Type] [Category] [Subcategory] [, Flavor flavor]`
+
+**HYDE Type Inference** (intent model only): Effect words automatically add strain type:
+- Sativa effects (`uplifting`, `energizing`, `creative`, `focused`, `clear-mind`, `inspired`, `alert`, `daytime`) → `type: ["sativa","sativa-hybrid"]`
+- Indica effects (`relaxing`, `sleepy`, `calm`, `heavy`, `sedative`) → `type: ["indica","indica-hybrid"]`
+- Potency words (`strong`, `potent`, `mild`) are explicitly excluded — they never trigger type inference
+
+**Two-Step Potency Gate** (intent model only):
+- **Step 1:** Exact potency word or number must be present. Effect words and superlatives on effects ("most uplifting") do NOT pass.
+- **Step 2:** Category-specific scale maps word to THC range. No category = no THC filter.
+- The two gates are orthogonal: `"strong sleepy indica"` triggers both; `"very potent prerolls"` triggers only potency; `"most uplifting vapes"` triggers only HYDE.
+
+## Schema System
+
+### Canonical Schema (`backend/src/schema.json`)
+
+**Categories** (8): `flower`, `prerolls`, `edibles`, `concentrates`, `vaporizers`, `cbd`, `topicals`, `accessories`
+
+**Types** (5): `indica`, `sativa`, `hybrid`, `indica-hybrid`, `sativa-hybrid`
+
+**Canonical Effects** (10): `calm`, `happy`, `relaxed`, `energetic`, `clear-mind`, `creative`, `focused`, `inspired`, `sleepy`, `uplifted`
+
+**Subcategories** (category-specific):
+- edibles: chews, chocolates, cooking-baking, drinks, gummies, live-resin-gummies, live-rosin-gummies
+- vaporizers: all-in-one, cartridges, disposables, live-resin, live-rosin
+- prerolls: blunts, infused-prerolls, infused-preroll-packs, pre-roll-packs, singles
+- flower: bulk-flower, pre-ground, premium-flower, small-buds, whole-flower
+- concentrates: badder, hash, live-resin, live-rosin, rosin, unflavored
+- topicals: balms
+- accessories: batteries, glassware, grinders, lighters, papers-rolling-supplies
+
+**THC Field Mappings**:
+- `thc_percentage`: flower, prerolls, vaporizers, concentrates
+- `thc_per_unit_mg`: edibles
+- `cbd_total_mg`: cbd, topicals
+
+**Potency Scales**:
+- Flower/Prerolls: Mild <13%, Balanced 13-18%, Moderate 18-22%, Strong 22-28%, Very Strong >28%
+- Vaporizers/Concentrates: Mild <66%, Balanced 66-75%, Moderate 75-85%, Strong 85-90%, Very Strong >90%
+- Edibles: Mild <2.5mg, Balanced 2.5-5mg, Moderate 5-10mg, Strong 10-25mg, Very Strong >25mg
+
+## Vectorizer Architecture
+
+**Scripts** (`vectorizer/src/`):
+- `vectorize.py` - Main pipeline (fetch → transform → embed → upload)
+- `normalize_products.py` - 200+ lines transformation logic
+- `manage_indexes.py` - Index management (create, delete, list, exists)
+- `dutchie_client.py` - Dutchie GraphQL API client
+- `preset_sync.sh` - Batch sync automation
+
+**Transformation Pipeline** (`normalize_products.py`):
+1. Category/type normalization: `PRE_ROLLS` → `prerolls`, `INDICA_HYBRID` → `indica-hybrid`
+2. Subcategory mapping: 66+ mappings (`PREMIUM` → `premium-flower`)
+3. THC/CBD extraction (category-specific): Flower uses %, edibles use mg/unit
+4. Weight/pack parsing: `1/8oz` → `3.54g`, `5pk` → pack_count: 5
+5. Effects normalization: Uppercase → lowercase, map to canonical
+6. Terpenes/cannabinoids: Flatten to string arrays (Vectorize compatibility)
+7. Potency classification: Category-specific scales
+8. Price priority: specialPriceRec > priceRec > priceMed
+9. Metadata enrichment: Shop links, images, brand info
+10. Embedding generation: Rich text → Workers AI embeddings
+
+**CLI Usage**:
+```bash
+# Dry run (test)
+python vectorize.py -x products-test --category EDIBLES --limit 20
+
+# Upload
+python vectorize.py -x products-prod --category EDIBLES --limit 100 --upload
+
+# Batch sync (preset)
+./preset_sync.sh all-subcategories EDIBLES products-prod 15
+
+# Index management
+python manage_indexes.py --create products-prod
+python manage_indexes.py --list
+```
+
+**Schema Sync**: `vectorizer/src/schema.json` is **source of truth** → copied to `backend/src/schema.json`
+
+## Critical Development Rules
+
+### Streaming
+- **NEVER break streaming** - Use buffer-based SSE parsing with `split("\n\n")`
+- Always test for zero first-token cutoffs
+
+### Recommendations
+- **NEVER send `recommendations` array to LLM** - Strip before sending to Groq
+- **NEVER recommend in general chat** - Only when intent = "recommendation"
+- **NEVER use injection hacks** - Keep text and data separate
+
+### Context
+- **Always enrich history** - When message has recommendations, add natural summary to LLM context
+- **Always maintain order** - Recommendations appear in exact conversation position
+
+### Vector DB Limitations
+- **NEVER filter `effects`/`flavor` via metadata** - Vectorize doesn't support array filtering
+- Handle via semantic search + LLM re-ranking instead
+- **Always pass filters and semantic_search from `/intent` to `/recommendations`**
+
+### Product Questions
+- **product-question intent** - Do NOT call `/recommendations`
+- Use two-phase lookup: (1) fuzzy match frontend, (2) `/product-lookup` fallback
+- Pass full product context to `/stream`
+
+### Prompt Engineering
+- **Examine root causes, don't bloat** - Analyze WHY prompt fails before adding text. Modify existing instructions slightly vs adding bulk.
+- **New examples only when necessary** - Most improvements should clarify existing text, not add more examples.
+- **Safety over accuracy for THC** - Better to NOT extract `thc_percentage_min/max` when uncertain than to accidentally add it. Hallucinating THC is MORE dangerous now (32% limit vs 28%). Recommending too-strong products is worse than omitting THC.
+- **Effect superlatives ≠ Potency superlatives** - "Most uplifting" = strongest EFFECT (no THC), "Most potent" = highest THC. Critical distinction.
+
+### Error Handling
+- **Always return descriptive errors** - Never silent failures
+- HTTP 400 with `errorType`, `errorMessage`, `details`, `suggestion`
+- Include fallback values for graceful degradation
+
+### CSS
+- **NEVER use `!important`** - Fix specificity properly
+- Use CSS variables, proper specificity, `color: inherit`
+
+### ⚠️ ChatInput Mobile Fix - DO NOT MODIFY
+
+**CRITICAL BUG FIX** - Mobile initial tap issue (`Svelte-Component-Library/src/lib/custom/ChatInput/ChatInput.svelte`)
+
+**The bug**: Input wouldn't respond to first tap on mobile when chat opens. Required multiple taps to become interactive.
+
+**The fix (ALL REQUIRED - DO NOT CHANGE):**
+
+1. **Use `<input>` for single-line, `<textarea>` only when expanded** (input element required for mobile)
+2. **NO backdrop-filter on container** (causes GPU compositing delays - breaks mobile tap detection)
+3. **Pointer-events cascade**: Wrapper has `pointer-events: none`, input/textarea has `pointer-events: auto` (critical for touch)
+4. **Container alignment**: `align-items: center` (NOT flex-end - breaks vertical centering)
+5. **Mobile touch CSS**: `touch-action: manipulation`, `pointer-events: auto !important`, `-webkit-tap-highlight-color: transparent`
+6. **Z-index isolation**: `.chat-input` has `z-index: 1; isolation: isolate`
+
+**DO NOT:**
+- Add backdrop-filter back to container
+- Change pointer-events cascade
+- Switch to textarea-only approach
+- Change align-items to flex-end
+- Modify touch-action properties
+- Remove z-index/isolation
+
+This took multiple debugging sessions to solve. The fix is fragile - all parts work together. Test on mobile if you modify anything.
+
+## File Structure
+
+**Backend** (`backend/src/`):
+- `index.ts` - API routes (intent, stream, recommendations, product-lookup)
+- `schema.ts` / `schema.json` - Canonical categories, subcategories, potency scales
+- `utils.ts` - Filter validation, Vectorize query builder
+- `prompt.ts` - Thin dispatcher (routes to prompts/)
+- `prompts/stream.ts` - Stream prompt (Groq 70B, Maitre D + CODEX cues)
+- `prompts/intentWithCue.ts` - Intent prompt (Cerebras 32B, HYDE + Potency Gate)
+- `prompts/intentNoCue.ts` - Intent backup (verbatim rollback)
+- `prompts/rerank.ts` - Re-ranking prompt (Cerebras 32B)
+- `prompts/recommend.ts` - Legacy recommendation prompts (reference)
+
+**Frontend** (`client/src/`):
+- `Widget.svelte` - Main widget
+- `theme.svelte.ts` - Theme state
+
+**Component Library** (`Svelte-Component-Library/src/lib/custom/`):
+- ChatWidget, ChatMessage, ChatBubble, ChatInput, etc.
+- ProductCard, ProductGrid, ProductList
+- Import directly from `.svelte` files (tree-shaking safe)
+
+**Vectorizer** (`vectorizer/src/`):
+- `vectorize.py`, `normalize_products.py`, `manage_indexes.py`, `dutchie_client.py`, `preset_sync.sh`
+- `schema.json` - Source of truth
+- `schema/*.md` - Category transformation docs
+- `CLI_COMMANDS.md` - Complete CLI reference
+
+## Development Workflow
+
+1. **Plan** - Think step-by-step, propose minimal changes
+2. **Deliver smallest chunk** - One component/route/fix at a time
+3. **Modify only necessary files** - Touch minimum required
+4. **Verify locally** - Test streaming, recommendations, persistence
+5. **One commit per change** - Clear message, wait for approval
+
+### Multi-Chunk Features
+1. Plan entire feature, break into chunks
+2. Get approval for plan + first chunk
+3. Implement one chunk at a time
+4. NEVER implement unapproved features
+5. Ask if unclear: "Should I proceed with [chunk]?"
+
+## Debugging Recommendations
+
+**Three Failure Points**:
+
+| Point | Symptoms | Debug |
+|-------|----------|-------|
+| **Intent** | Wrong filters/semantic_search | Check `/intent` response |
+| **Vector DB** | Good intent, wrong products | Check `preRankedProducts` |
+| **Re-ranker** | Good retrieval, wrong ranking | Compare pre vs post ranking |
+
+**Common Issues**:
+- Intent: Category hallucination, poor semantic_search
+- Vector DB: Query doesn't match embedding vocabulary
+- Re-ranker: Not enforcing effects priority, keeping contradicting products
+
+## Local Development
+
+**Backend**:
+```bash
+cd backend
+npx wrangler dev --remote
+```
+
+**Frontend**:
+```bash
+cd client
+npm run dev
+npm run build  # → dist/widget.js
+```
+
+**Vectorizer**:
+```bash
+cd vectorizer
+source venv/bin/activate
+python vectorize.py -x INDEX --category CATEGORY --limit N --upload
+```
+
+## Component Library Integration
+
+- Import from `.svelte` files directly
+- NEVER import `.stories.ts` files
+- Vite auto-excludes Storybook (tree-shaking)
+- Separate git repo - commit there separately
+
+## Storybook Format
+
+```typescript
+// ✅ Preferred
+export const MyStory: Story = {
+  args: { expanded: false }
+};
+
+// ❌ Avoid render without args
+```
+
+## Context Switching
+
+**`.claude/settings.json`** controls focus:
+- **UI Focus** (default): Client + Component Library
+- **Backend Focus**: Backend API only
+- **Vectorizer Focus**: Python scripts only
+
+---
+
+**Always**: Professional objectivity, no time estimates, no emoji (unless requested), minimal changes only, wait for explicit approval.

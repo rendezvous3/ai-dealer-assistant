@@ -1,0 +1,72 @@
+# Node / npm / pnpm / yarn
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+backend/dist/
+client/dist/
+client/static/widget.js
+client/.svelte-kit/
+client/build/
+client/.env.*
+!client/.env.qa.example
+
+# Local environment variables (never commit real keys!)
+.env
+.env.local
+.env.*.local
+
+# Cloudflare Wrangler
+backend/.wrangler/
+backend/.dev.vars
+
+# Python
+__pycache__/
+*.pyc
+vectorizer/.venv/
+vectorizer/venv/
+vectorizer/env/
+vectorizer/*.db
+vectorizer/.env*
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*~
+
+# IDEs
+.vscode/
+.idea/
+*.code-workspace
+
+# Optional: if you ever add tests or examples
+coverage/
+test-results/
+Svelte-Component-Library/.git.backup/
+
+# Claude Code local settings (personal context switching)
+.claude/settings.local.json
+
+# Dashboard app
+/dashboard/ui/.svelte-kit/
+/dashboard/ui/build/
+/dashboard/ui/.env
+/dashboard/ui/.env.local
+/dashboard/ui/.env.*.local
+
+# Dashboard API
+/dashboard/api/.wrangler/
+/dashboard/api/dist/
+/dashboard/api/.dev.vars
+
+# Root Wrangler state
+/.wrangler/

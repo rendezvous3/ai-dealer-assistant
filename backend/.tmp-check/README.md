@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "wine-chat-backend" generated at 2026-05-09T04:19:36.242Z.
