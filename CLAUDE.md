@@ -1,4 +1,4 @@
-# Wine Sommelier AI Chat Widget
+# AI Dealer Assistant
 
 ## Local Terminal Note
 
@@ -10,13 +10,13 @@ nvm use --lts
 
 ## Project Overview
 
-This is a POC embeddable AI wine recommendation chatbot. The widget delivers a sommelier-like experience:
-- Answers general questions about wine
-- Detects when the customer wants wine recommendations
-- Streams natural, warm conversation
-- Displays rich wine product cards inline when recommendations are made
-- Remembers past recommendations and references them naturally
-- Persists entire chat (including recommendations) across page refreshes via localStorage
+This is a POC embeddable AI car dealership sales assistant. The widget delivers a consultative vehicle shopping experience:
+- Answers general questions about vehicles, financing, and the dealership
+- Detects when the customer is ready for recommendations (CODEX system)
+- Streams natural, conversational responses
+- Displays rich vehicle cards inline when recommendations are made
+- Supports a 5-step guided flow as an alternative to open-ended chat
+- Persists the entire conversation across page refreshes via localStorage
 
 The system is built as **three components**:
 
@@ -24,33 +24,29 @@ The system is built as **three components**:
 2. **Frontend Widget** (`client/`) — Svelte 5 embeddable chat widget
 3. **Component Library** (`Svelte-Component-Library/`) — Reusable UI components
 
-**No vectorization.** All product search is metadata-first via D1 SQL queries. No embeddings, no similarity scores, no HYDE inference.
+**No vectorization.** All vehicle search is metadata-first via D1 SQL queries. No embeddings, no similarity scores.
 
 ## Model Catalog Maintenance
 
-- Last reviewed: March 20, 2026
-- Fast-model constants updated on this date:
-  - OpenAI `gpt-5-mini` replaces `gpt-4o-mini`
-  - Google `gemini-2.5-flash-lite` was added to the backend model registry
-- Periodically re-check official OpenAI, Google Gemini, xAI, and Groq model catalogs.
+- Last reviewed: May 2026
+- Periodically re-check official xAI (Grok), Groq, Google Gemini, and OpenAI model catalogs.
 - When backend model constants change, update `backend/src/types-and-constants.ts`.
 
 ## Architecture
 
 ### Infrastructure
 
-- **1 Cloudflare Worker** (`wine-chat-backend`) — single wrangler.toml
-- **1 D1 database** (`wine-catalog`) — the wine catalog
-- **No cron jobs** — no vectorizer = no scheduled sync
+- **1 Cloudflare Worker** (`dealer-chat-backend`) — single wrangler.toml
+- **1 D1 database** (`vehicle-catalog`) — the vehicle inventory
+- **No cron jobs** — pure SQL search, no scheduled sync
 - **No QA/prod split** — single deployment lane
 - **No Vectorize binding** — no vector DB
-- **No Workers AI binding** — no embedding model
 
 ### Profile System
 
 `PROFILE_TYPE` env var selects runtime behavior:
-- **Brand Concierge** (`brand_concierge`) — constrains all queries to a single winery's catalog
-- **Merchant Advisor** (`merchant_advisor`) — searches across all brands (default)
+- **Merchant Advisor** (`merchant_advisor`) — searches across all brands (default, Mountain Motors)
+- **Brand Concierge** (`brand_concierge`) — constrains all queries to a single brand (Summit Ford, Ford-only)
 
 Config lives in `backend/src/profiles/`.
 
@@ -59,10 +55,10 @@ Config lives in `backend/src/profiles/`.
 **Technology**: TypeScript + Hono + Cloudflare Workers
 
 **Routes**:
-- `/chat/stream` — SSE streaming conversation (sommelier persona). Emits CODEX cues to trigger intent.
-- `/chat/intent` — Structured wine filter extraction from conversation. Extracts wine_type, body, flavor_profile, occasion, price, etc.
-- `/chat/recommendations` — Wine search via D1 SQL + optional LLM re-ranking (fires only when >3 results).
-- `/chat/product-lookup` — Name-based wine search. Confidence by result count (1=confident, 2-3=clarify, 0=not found).
+- `/chat/stream` — SSE streaming conversation (car consultant persona). Emits CODEX cues to trigger intent.
+- `/chat/intent` — Structured vehicle filter extraction from conversation CODEX summary.
+- `/chat/recommendations` — Vehicle search via D1 SQL + optional LLM re-ranking (fires when >3 results).
+- `/chat/product-lookup` — Name-based vehicle search. Confidence by result count (1=confident, 2-3=clarify, 0=not found).
 - `/feedback` — User feedback collection.
 
 **Bindings**:
@@ -74,56 +70,88 @@ interface Bindings {
   OPENAI_API_KEY?: string;
   GROK_API_KEY?: string;
   RESEND_API_KEY: string;
-  WINE_DB: D1Database;
-  ANALYTICS_DB?: D1Database;
+  VEHICLES_DB: D1Database;
   PROFILE_TYPE?: string;
 }
 ```
 
-### Wine Search (`backend/src/wine-search.ts`)
+### Vehicle Search (`backend/src/vehicle-search.ts`)
 
-Pure SQL search against D1. Three functions:
-- `searchWines(db, filters)` — parameterized SQL with WHERE clauses for all wine dimensions
-- `lookupWineByName(db, query, limit)` — LIKE-based name search
-- `surpriseMe(db, filters, limit)` — random selection with optional partial filters
+Pure SQL search against D1. Four functions:
+- `searchVehicles(db, filters, limit)` — parameterized SQL with WHERE clauses for all vehicle dimensions
+- `searchVehiclesWithFallback(db, filters, limit)` — 7-tier cascade (see below)
+- `lookupVehicleByName(db, query, limit)` — LIKE-based make/model/trim search
+- `surpriseMe(db, filters, limit)` — random selection with partial filters
 
-**Wine Filters**:
+**7-Tier Fallback Cascade**:
+1. Full filter match (all active filters)
+2. Drop priority_tags
+3. Drop use_case_tags
+4. Drop drive_type, fuel_type
+5. Keep only condition + body_type + price
+6. Keep only body_type + price
+7. Price only (broadest anchor)
+
+**Vehicle Filters**:
 ```typescript
-interface WineFilters {
-  wine_type?: string;
-  varietal?: string;
-  region?: string;
-  body?: string;
-  sweetness?: string;
+interface VehicleFilters {
+  condition?: string;        // new | used | cpo
+  body_type?: string;        // sedan | suv | truck | hatchback | minivan | coupe
+  make?: string;
+  model?: string;
+  year_min?: number;
+  year_max?: number;
+  drive_type?: string;       // fwd | awd | 4wd | rwd
+  fuel_type?: string;        // gasoline | hybrid | electric | diesel | plug-in-hybrid
   price_min?: number;
   price_max?: number;
-  occasion?: string;
-  brand?: string;
-  flavor_profile?: string[];
+  mileage_max?: number;
+  seats_min?: number;
+  use_case_tags?: string[];  // family | commuter | adventure | commercial | performance | eco
+  priority_tags?: string[];  // safety | fuel-economy | cargo | towing | tech | reliability | performance | luxury
 }
 ```
 
+**Tag queries**: `use_case_tags` and `priority_tags` are stored as JSON TEXT in D1 and queried with `LIKE '%"tag"%'`.
+
 ### CODEX Cue System
 
-The stream LLM emits trigger phrases when it detects a recommendation-ready query. The "2/3 rule" for wine: user provides 2 of:
-1. Wine Style (red, white, sparkling, etc.)
-2. Flavor/Taste preference (fruity, bold, earthy, etc.)
-3. Body OR Occasion (full-bodied, dinner party, etc.)
+The stream LLM emits trigger phrases when it detects a recommendation-ready query.
 
-Cue phrases:
+**ANCHOR** = any of:
+- Vehicle condition: new, used, certified pre-owned
+- Body style: SUV, truck, sedan, hatchback, minivan, coupe
+- Named make/model: Toyota, F-150, RAV4, Mustang, etc.
+
+**REFINER** = any of:
+- Use case: commuting, family, adventure, off-road, work, performance, eco
+- Priority: safety, cargo, fuel economy, towing, reliability, tech, luxury
+- Drive type: AWD, 4WD, FWD, RWD
+- Fuel type: hybrid, electric, plug-in hybrid, diesel
+- Mileage: under X miles
+- Price: under/around/between $X
+
+**Rule: Fire at ANCHOR + 1 REFINER. Ask at most ONE clarifying question before firing.**
+
+Cue phrases (any one of these triggers intent extraction):
 - "I completely understand what you're looking for"
-- "I'm pulling up wines that fit your criteria"
-- "Checking our selection based on what you described"
-- "Let me find the best matches"
+- "Let me check what we have that matches your needs"
+- "I'm pulling up vehicles that fit your criteria"
+- "Checking our inventory based on what you described"
+
+**CODEX summary format (strict field order)**:
+```
+[Condition] [Body type] [Use case] [Priority tags] [Drive type] [Fuel type] [Mileage] [under/around Price]
+```
+Example: "used SUV for family hauling prioritizing safety AWD under $40,000"
 
 ### Prompt Architecture (`backend/src/prompts/`)
 
 | File | Purpose |
 |------|---------|
-| `stream.ts` | Sommelier persona + CODEX cues |
-| `intentWithCue.ts` | Wine filter extraction from CODEX summary |
-| `intentNoCue.ts` | Backup intent extraction |
-| `rerank.ts` | Wine re-ranking on metadata (no similarity scores) |
+| `stream.ts` | Car consultant persona + ANCHOR/REFINER rules + CODEX cues |
+| `intentWithCue.ts` | Vehicle filter extraction from CODEX summary |
+| `rerank.ts` | Vehicle re-ranking on metadata (use case, priority, budget, condition) |
 
 ### Frontend Widget (`client/src/Widget.svelte`)
 
@@ -131,42 +159,78 @@ Cue phrases:
 
 **Key Features**:
 - CODEX cue detection → intent → recommendations flow
-- 5-step guided flow (Wine Style → Occasion → Flavor Profile → Body → Price)
-- "Surprise Me" options in guided flow steps
-- Rich wine product cards with varietal/region/vintage, body/type badges
+- 5-step guided flow (Condition → Use Case → Body Type → Priorities → Budget)
+- Rich vehicle product cards with condition/body/drive/fuel badges
+- 5 car education panels in the guide menu
 - localStorage persistence for entire conversation
 - SSE streaming with buffered parsing
 
-**Quick-start suggestions**: Bold Red, Crisp White, Date Night, Under $25, Sparkling, Surprise Me
+**Quick-start suggestions (Merchant Advisor)**: Family SUV under $40k, Reliable Daily Driver, Truck for Work, Best Fuel Economy, Fun to Drive, Surprise Me
+
+**5 Guided Flow Steps**:
+1. **Condition** — New | Used/Pre-Owned | Certified Pre-Owned (CPO) | Surprise Me
+2. **Use Case** — Daily Commuting | Family Hauling | Weekend Adventures | Work/Commercial | Performance | Best Fuel Economy
+3. **Body Style** — Sedan | SUV/Crossover | Truck | Hatchback/Wagon | Minivan | Coupe/Convertible
+4. **Priorities** — Safety | Fuel Economy | Cargo/Space | Towing | Tech | Reliability | Performance | Luxury (multi-select, max 2)
+5. **Budget** — Under $15k | $15k–$25k | $25k–$40k | $40k–$60k | $60k+ | Flexible
 
 ### Component Library (`Svelte-Component-Library/`)
 
 Reusable Svelte 5 components:
-- **ProductCard** — Wine-specific: varietal/region/vintage subtitle, body/type badges, tasting notes
-- **ProductRecommendation** — Multiple layouts (compact-list, compact-grid, bubble-grid, carousel) with wine badges
-- **GuidedFlow** — Multi-step product discovery with single-select, multi-select, slider, price-selector
+- **ProductCard** — Vehicle-specific: year/make/model/trim title, condition/body_type/drive_type/fuel_type badges, mileage + engine specs, key features chips, "View Vehicle" button
+- **ProductRecommendation** — Multiple layouts (compact-list, compact-grid, bubble-grid, carousel) with vehicle badges
+- **GuidedFlow** — Multi-step product discovery with single-select, multi-select, price-selector
 - **ChatWidget, ChatMessage, ChatBubble, ChatInput** — Chat UI primitives
 
-### Wine Schema (`backend/src/wine-schema.ts`)
+### Vehicle Schema (`backend/src/vehicle-schema.ts`)
 
-Domain constants and validation for wine dimensions:
-- Wine types: red, white, rose, sparkling, dessert
-- Body: light, medium, full
-- Sweetness: dry, off-dry, sweet
-- 8 flavor families: berry, citrus, tropical, chocolate, vanilla, pepper, floral, earthy
-- Occasions: dinner-party, date-night, gift, casual, celebration, cooking
+Domain constants and validation for vehicle dimensions:
+- Conditions: new, used, cpo
+- Body types: sedan, suv, truck, hatchback, minivan, coupe, convertible, wagon, van
+- Drive types: fwd, awd, 4wd, rwd
+- Fuel types: gasoline, hybrid, electric, diesel, plug-in-hybrid
+- Use case tags: family, commuter, adventure, commercial, performance, eco
+- Priority tags: safety, fuel-economy, cargo, towing, tech, reliability, performance, luxury
 
-D1 schema at `backend/db/schema.sql`, seed data at `backend/db/seed.sql`.
+D1 schema at `backend/db/schema.sql`, seed data at `backend/db/seed.sql` (28 demo vehicles).
+
+## Running the Project
+
+### First-Time Setup
+```bash
+nvm use --lts
+
+# Backend
+cd backend
+npm install
+npx wrangler d1 execute vehicle-catalog --local --file=db/schema.sql
+npx wrangler d1 execute vehicle-catalog --local --file=db/seed.sql
+npx wrangler dev   # starts on port 9174
+
+# Frontend (new terminal)
+cd client
+npm install
+npm run dev   # starts on port 5173
+```
+
+### Verification Checklist
+1. `GET /chat/config` → returns Mountain Motors config with car quick-starts
+2. POST `/chat/stream` with "reliable SUV for my family under $40k" → CODEX fires with "used or new SUV for family prioritizing reliability under $40,000"
+3. POST `/chat/intent` with that CODEX message → returns `body_type: suv, use_case_tags: [family], priority_tags: [reliability], price_max: 40000`
+4. POST `/chat/recommendations` with those filters → matching vehicles from D1
+5. Widget guided flow: 5 steps → submit → CODEX → recommendations render with vehicle cards
+6. Quick-start "Surprise Me" → immediate recommendations
 
 ## Development Rules
 
 ### Critical Rules
-- **Never use `setTimeout` for UI logic** — Use `requestAnimationFrame`, reactive `$effect`, or CSS transitions instead. Only acceptable in network/retry logic.
+- **Never use `setTimeout` for UI logic** — Use `requestAnimationFrame`, reactive `$effect`, or CSS transitions instead
 - **Never break streaming** — always use buffer-based SSE parsing with `split("\n\n")` and incomplete chunk handling
-- **Never send `recommendations` array to LLM** — always strip the `recommendations` field from messages before sending
-- **Never recommend products in general chat** — only triggered when intent = "recommendation"
-- **Always enrich history for context** — when a message has recommendations, include a natural summary in conversation history
-- **Always maintain correct message order** — recommendations appear in the exact conversation position where they were made
+- **Never send `recommendations` array to LLM** — always strip `recommendations` field from messages before sending
+- **Never recommend vehicles in general chat** — only triggered when intent = "recommendation"
+- **Always enrich history for context** — when a message has recommendations, include a natural summary
+- **Brand Concierge make constraint**: Set `normalizedFilters.make = profile.brandName` (NOT `.brand`)
+- **Vehicle name computation**: `[result.year, result.make, result.model].filter(Boolean).join(' ')` (no `.name` field)
 
 ### CSS Best Practices
 - **NEVER use `!important`** — Fix CSS specificity issues properly instead
@@ -179,8 +243,7 @@ D1 schema at `backend/db/schema.sql`, seed data at `backend/db/seed.sql`.
 - Visible focus indicators
 - Reduced-motion support via `prefers-reduced-motion`
 
-### ChatInput Mobile Fix - DO NOT MODIFY
-
+### ChatInput Mobile Fix — DO NOT MODIFY
 The ChatInput component has a carefully solved mobile tap-detection bug. Do not modify:
 - Use `<input type="text">` for single-line (not textarea)
 - No `backdrop-filter` on container
@@ -194,7 +257,6 @@ The ChatInput component has a carefully solved mobile tap-detection bug. Do not 
 3. Implement one focused chunk at a time
 4. Modify only necessary files
 5. Verify locally (streaming, recommendations, persistence)
-6. One logical change = one commit
 
 ### Component Library Integration
 - Import directly from `.svelte` files, never `.stories.ts`
@@ -208,5 +270,21 @@ The ChatInput component has a carefully solved mobile tap-detection bug. Do not 
 | Frontend | Svelte 5 + TypeScript + Vite | Lightweight, reactive, ideal for embeddable widgets |
 | Backend | Hono + Cloudflare Workers | Edge-fast, free tier |
 | Database | Cloudflare D1 | Zero-ops SQLite, integrated with Workers |
-| LLM | Multi-provider (Groq, Cerebras, Google, OpenAI, Grok) | Streaming speed + structured extraction reliability |
+| LLM (stream) | Grok (xAI) | Strong conversational quality |
+| LLM (intent) | Groq | Fast structured extraction |
+| LLM (rerank) | Grok (xAI) | Reasoning quality for vehicle ranking |
 | Persistence | localStorage | Simple, private, offline-safe |
+
+## NEXT STEPS
+
+### IDEAS (Unvetted — research only)
+- Apify AutoTrader/Cars.com scrapers for real inventory (ToS risk, needs evaluation)
+- NHTSA vPIC VIN decode enrichment (free, confirmed working — needs real VINs first)
+- VinAudit / EpicVIN history reports ($3–10/report) — viable for post-demo
+- Cloudflare Vectorize for semantic search on vehicle descriptions (Phase 2)
+- Marketcheck API for price ranking vs. local market average
+
+### Vetted / Ready to Plan
+- Dealer direct CSV/DMS export — free, legal, most accurate for real dealer partner
+- Self-calculated price score (market avg from scraped set) — no third-party needed for demo
+- NHTSA vPIC API — confirmed free, returns HP/drive type/body class/transmission

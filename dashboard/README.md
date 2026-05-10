@@ -1,15 +1,15 @@
 # Chat Analytics Dashboard Suite
 
-Self-contained analytics dashboard package for the POC chatbot projects.
+Self-contained analytics dashboard package for the AI Dealer Assistant POC.
 
-This folder is intentionally split from the Wine chatbot writer/runtime:
+This folder is intentionally split from the dealer widget runtime:
 
 - `ui/` — SvelteKit 5 analytics dashboard, including local dashboard UI components and the Svelte compliance/session store cache.
 - `api/` — read-only Cloudflare Worker API exposing `/chat-analytics/*` and reading Cloudflare D1.
 - `docs/` — analytics schema and dashboard contract copied from the current chatbot analytics source of truth.
-- `reference/` — Loyalty FastAPI reference implementation used during the port. Runtime code does not depend on it.
+- `reference/` — reference implementation used during the port. Runtime code does not depend on it.
 
-The Wine widget app remains in `client/`. The Wine chatbot/write Worker remains in `backend/`. This dashboard never writes analytics rows.
+The dealer widget app remains in `client/`. The dealer chat/write Worker remains in `backend/`. This dashboard never writes analytics rows.
 
 ## Runtime Flow
 

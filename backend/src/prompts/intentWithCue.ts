@@ -1,4 +1,4 @@
-import { getWineSchemaForPrompt } from '../wine-schema';
+import { getVehicleSchemaForPrompt } from '../vehicle-schema';
 
 export const generateIntentWithCuePrompt = (
   lastAssistantContent: string,
@@ -6,156 +6,76 @@ export const generateIntentWithCuePrompt = (
   schemaInfo: string
 ): string => {
   return `
-You are a filter extraction assistant for a wine recommendation system. The conversation manager has already determined this is a recommendation request.
-Your job is to extract structured filters from the conversation history.
+You are a filter extraction assistant for a vehicle recommendation system. The conversation manager has already determined this is a recommendation request.
+Your job is to extract structured filters from the conversation.
 
 **EXTRACTION STRATEGY:**
+The streaming LLM evaluates conversation history, normalizes user intent, and emits a CODEX cue with a summary in strict field order:
+  [Condition] [Body type] [Use case] [Priority tags] [Drive type] [Fuel type] [Mileage] [under/around Price]
 
-**Stream prepares query**:
-- The streaming LLM evaluates conversation history, normalizes user intent into structured elements,
-and emits a CODEX cue with a summary following a strict field-order format:
-  [Body] [Flavor descriptors] [Sweetness] [Wine Style] [Varietal] [Region] [for Occasion] [with Food] [under/around Price]
-- This structured summary is your PRIMARY source for extraction.
-
-**Intent extracts query**: Parse the LAST assistant message (CODEX message) as the primary source; use user messages only for validation/enrichment of specific details like exact price ranges.
+Parse the LAST assistant message (CODEX message) as the primary source. Use user messages only for validation/enrichment of specific details like exact price ranges.
 
 **Extraction Rules:**
 - Extract ONLY what the user explicitly stated. Do NOT infer.
-- If user says "bold red" → extract wine_type: "red", body: "full". Do NOT add flavor_profile, region, or varietal.
 - If user says "surprise me" → set action to "surprise". No filters needed.
-- If user names a sparkling style like Champagne, Prosecco, Cava, Crémant, Blanc de Blancs, Brut, Sparkling Rosé, or Moscato, extract wine_type: "sparkling" plus matching style_tags.
-- If user mentions flavor descriptors, map them to the closest flavor family tags (see mapping below).
 
 ${schemaInfo}
 
-## WINE SCHEMA
-${getWineSchemaForPrompt()}
+## VEHICLE SCHEMA
+${getVehicleSchemaForPrompt()}
 
-## WINE TYPE MAPPING
-- "red", "red wine", "reds" → wine_type: "red"
-- "white", "white wine", "whites" → wine_type: "white"
-- "rosé", "rose" → wine_type: "rose"
-- "sparkling", "champagne", "bubbly", "bubbles", "prosecco", "cava", "cremant", "crémant", "blanc de blancs", "brut" → wine_type: "sparkling"
-- "dessert", "sweet wine", "port" → wine_type: "dessert"
+## CONDITION MAPPING
+- "new", "brand new" → condition: "new"
+- "used", "pre-owned", "second-hand" → condition: "used"
+- "certified", "CPO", "certified pre-owned" → condition: "cpo"
 
-## STYLE TAG EXTRACTION
-- "brut", "dry bubbles" → style_tags: ["brut"]
-- "champagne" → style_tags: ["champagne"]
-- "prosecco" → style_tags: ["prosecco"]
-- "cava" → style_tags: ["cava"]
-- "cremant", "crémant" → style_tags: ["cremant"]
-- "blanc de blancs" → style_tags: ["blanc-de-blancs"]
-- "sparkling rosé", "sparkling rose", "rosé bubbles", "pink bubbles" → style_tags: ["sparkling-rose"]
-- "sparkling moscato" → style_tags: ["moscato"]
+## BODY TYPE MAPPING
+- "sedan", "car" (no other type) → body_type: "sedan"
+- "SUV", "crossover", "4x4" → body_type: "suv"
+- "truck", "pickup" → body_type: "truck"
+- "hatchback", "hatch", "wagon" → body_type: "hatchback"
+- "minivan", "van", "people mover" → body_type: "minivan"
+- "coupe", "sports car", "convertible" → body_type: "coupe"
 
-## BODY MAPPING
-- "full-bodied", "full", "bold", "rich", "heavy", "dense", "big" → body: "full"
-- "medium-bodied", "medium", "smooth", "balanced", "round" → body: "medium"
-- "light-bodied", "light", "crisp", "delicate", "refreshing", "lean" → body: "light"
-- "silky", "velvety", "supple" → body: "medium" (texture descriptors, not body per se)
+## USE CASE MAPPING
+- "commute", "daily driver", "city driving", "to work" → use_case_tags: ["commuter"]
+- "family", "kids", "road trips", "dog", "carpool" → use_case_tags: ["family"]
+- "off-road", "adventure", "mountains", "skiing", "camping", "outdoors" → use_case_tags: ["adventure"]
+- "work truck", "tow", "haul", "jobsite", "commercial" → use_case_tags: ["commercial"]
+- "fast", "sporty", "fun to drive", "performance" → use_case_tags: ["performance"]
+- "fuel economy", "gas prices", "efficient", "hybrid", "electric", "eco" → use_case_tags: ["eco"]
 
-## SWEETNESS MAPPING
-- "dry", "bone dry", "not sweet", "very dry" → sweetness: "dry"
-- "off-dry", "semi-sweet", "slightly sweet" → sweetness: "off-dry"
-- "sweet", "very sweet", "dessert" → sweetness: "sweet"
+## PRIORITY MAPPING
+- "safe", "safety ratings", "5-star", "crash test" → priority_tags: ["safety"]
+- "efficient", "mpg", "fuel economy", "range" → priority_tags: ["fuel-economy"]
+- "cargo", "storage", "space", "seats 7", "third row" → priority_tags: ["cargo"]
+- "tow", "trailer", "towing capacity", "haul" → priority_tags: ["towing"]
+- "tech", "apple carplay", "screens", "connectivity", "infotainment" → priority_tags: ["tech"]
+- "reliable", "low maintenance", "dependable" → priority_tags: ["reliability"]
+- "powerful", "horsepower", "performance", "fast" → priority_tags: ["performance"]
+- "luxury", "premium", "comfortable", "leather" → priority_tags: ["luxury"]
 
-## FLAVOR DESCRIPTOR → FLAVOR PROFILE TAGS
+## DRIVE TYPE MAPPING
+- "AWD", "all-wheel drive", "snow", "rain", "Seattle winters", "all weather" → drive_type: "awd"
+- "4WD", "4x4", "four-wheel drive", "off-road" → drive_type: "4wd"
+- "FWD", "front-wheel drive" → drive_type: "fwd"
+- "RWD", "rear-wheel drive" → drive_type: "rwd"
 
-Map user flavor words to these tag arrays:
-
-Berry & Cherry family: "fruity", "berry", "cherry", "plum", "blackberry", "raspberry", "jammy", "cassis", "fruit-forward"
-  → flavor_profile: ["berry", "cherry"]
-
-Citrus & Green Apple family: "citrus", "lemon", "lime", "grapefruit", "green apple", "zesty", "bright", "tart"
-  → flavor_profile: ["citrus", "green-apple"]
-
-Tropical & Stone Fruit family: "tropical", "peach", "mango", "pineapple", "apricot", "lush"
-  → flavor_profile: ["tropical", "peach"]
-
-Chocolate & Coffee family: "chocolate", "chocolatey", "coffee", "cocoa", "mocha", "roasted"
-  → flavor_profile: ["chocolate", "coffee"]
-
-Vanilla & Caramel family: "vanilla", "caramel", "butterscotch", "toffee", "oaky", "buttery", "creamy", "toasty"
-  → flavor_profile: ["vanilla", "caramel"]
-
-Pepper & Spice family: "pepper", "peppery", "spicy", "spice", "clove", "cinnamon", "smoky", "smokey", "warming"
-  → flavor_profile: ["pepper", "spice"]
-
-Floral & Herbal family: "floral", "rose", "violet", "herbal", "herbaceous", "mint", "aromatic", "elegant"
-  → flavor_profile: ["floral", "herbal"]
-
-Earthy & Mineral family: "earthy", "mineral", "minerally", "slate", "mushroom", "flinty", "savory", "terroir"
-  → flavor_profile: ["earthy", "mineral"]
-
-## OCCASION MAPPING
-- "dinner party", "dinner", "hosting" → occasion: "dinner-party"
-- "date night", "date", "romantic" → occasion: "date-night"
-- "gift", "present", "for someone" → occasion: "gift"
-- "casual", "everyday", "weeknight", "just relaxing" → occasion: "casual"
-- "celebration", "celebrating", "birthday", "anniversary", "toast" → occasion: "celebration"
-- "cooking", "to cook with" → occasion: "cooking"
-- "brunch" → occasion: "brunch"
-
-## FOOD PAIRING MAPPING
-- "steak", "beef", "red meat" → food_pairing: "steak"
-- "lamb" → food_pairing: "lamb"
-- "chicken", "poultry", "turkey" → food_pairing: "poultry"
-- "pork" → food_pairing: "pork"
-- "salmon" → food_pairing: "salmon"
-- "fish", "seafood" → food_pairing: "seafood"
-- "shrimp", "lobster", "oysters", "shellfish" → food_pairing: "shellfish"
-- "pasta", "italian" → food_pairing: "pasta"
-- "pizza" → food_pairing: "pizza"
-- "cheese", "cheese board" → food_pairing: "cheese"
-- "charcuterie" → food_pairing: "charcuterie"
-- "salad", "greens" → food_pairing: "salad"
-- "chocolate", "dessert" → food_pairing: "chocolate" or "dessert"
+## FUEL TYPE MAPPING
+- "hybrid", "HEV" → fuel_type: "hybrid"
+- "electric", "EV", "battery electric" → fuel_type: "electric"
+- "plug-in", "PHEV", "plug-in hybrid" → fuel_type: "plug-in-hybrid"
+- "diesel" → fuel_type: "diesel"
+- "gas", "gasoline" → fuel_type: "gasoline"
 
 ## PRICE EXTRACTION
 - "under $X", "less than $X", "below $X", "up to $X" → price_max: X
-- "over $X", "above $X", "more than $X", "at least $X" → price_min: X
+- "over $X", "above $X", "at least $X" → price_min: X
 - "$X to $Y", "$X-$Y", "between $X and $Y" → price_min: X, price_max: Y
-- "around $X", "about $X" → price_min: X-10, price_max: X+10
+- "around $X", "about $X" → price_min: X-5000, price_max: X+5000
 
-## VARIETAL EXTRACTION
-Only extract if user explicitly mentions a grape variety:
-- "cabernet", "cab" → varietal: "cabernet-sauvignon"
-- "pinot noir", "pinot" (in red context) → varietal: "pinot-noir"
-- "chardonnay", "chard" → varietal: "chardonnay"
-- "sauvignon blanc", "sauv blanc" → varietal: "sauvignon-blanc"
-- "riesling" → varietal: "riesling"
-- "merlot" → varietal: "merlot"
-- "syrah", "shiraz" → varietal: "syrah"
-- "malbec" → varietal: "malbec"
-- "pinot grigio", "pinot gris" → varietal: "pinot-grigio"
-- "zinfandel", "zin" → varietal: "zinfandel"
-- "tempranillo" → varietal: "tempranillo"
-- "sangiovese" → varietal: "sangiovese"
-- "nebbiolo" → varietal: "nebbiolo"
-- "grenache" → varietal: "grenache"
-- "gewurztraminer", "gewurz" → varietal: "gewurztraminer"
-- "viognier" → varietal: "viognier"
-- "moscato" → varietal: "moscato"
-- "red blend", "big red blend" → varietal: "red-blend"
-- "white blend" → varietal: "white-blend"
-
-## REGION EXTRACTION
-Only extract if user explicitly mentions a region:
-- "Napa", "Napa Valley" → region: "napa-valley"
-- "Sonoma" → region: "sonoma"
-- "Bordeaux" → region: "bordeaux"
-- "Burgundy" → region: "burgundy"
-- "Champagne region", "from Champagne" → region: "champagne"
-- "Rhône", "Rhone" → region: "rhone-valley"
-- "Tuscany", "Tuscan" → region: "tuscany"
-- "Piedmont", "Piemonte" → region: "piedmont"
-- "Rioja" → region: "rioja"
-- "Barossa" → region: "barossa-valley"
-- "Marlborough" → region: "marlborough"
-- "Mendoza" → region: "mendoza"
-- "Mosel" → region: "mosel"
-- "Oregon", "Willamette" → region: "willamette-valley"
-- "Paso Robles" → region: "paso-robles"
+## MILEAGE EXTRACTION
+- "under X miles", "less than X miles", "below X miles" → mileage_max: X
 
 ## LAST ASSISTANT MESSAGE (CODEX summary — primary extraction source):
 ${lastAssistantContent}
@@ -167,30 +87,29 @@ ${lastMessage}
 {
   "intent": "recommendation" | "product-question" | "general" | "surprise",
   "filters": {
-    "wine_type": string | null,
-    "varietal": string | null,
-    "region": string | null,
-    "body": string | null,
-    "sweetness": string | null,
-    "acidity": string | null,
-    "tannin": string | null,
-    "flavor_profile": string[] | null,
-    "style_tags": string[] | null,
-    "food_pairing": string | null,
-    "occasion": string | null,
-    "brand": string | null,
+    "condition": string | null,
+    "body_type": string | null,
+    "make": string | null,
+    "model": string | null,
+    "year_min": number | null,
+    "year_max": number | null,
+    "drive_type": string | null,
+    "fuel_type": string | null,
     "price_min": number | null,
-    "price_max": number | null
+    "price_max": number | null,
+    "mileage_max": number | null,
+    "seats_min": number | null,
+    "use_case_tags": string[] | null,
+    "priority_tags": string[] | null
   },
   "product_query": string | null
 }
 
 CRITICAL OUTPUT RULES:
 - Return ONLY raw JSON (no markdown, no code blocks, no thinking tags)
-- Do NOT use <think> tags or any other XML tags
 - Start your response with { and end with }
-- Set null for any field not explicitly mentioned by the user
+- Set null for any field not explicitly mentioned
 - Do NOT infer fields — only extract what was stated
-- For "surprise me" intent, set intent to "surprise" and leave most filters null
+- For "surprise me" intent, set intent to "surprise" and leave filters null
 `;
-}
+};

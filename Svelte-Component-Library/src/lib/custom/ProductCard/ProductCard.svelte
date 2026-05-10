@@ -7,21 +7,17 @@
     title: string;
     price: number;
     originalPrice?: number;
-    rating?: number;
-    discount?: number;
     shopLink?: string;
     actionType?: 'add-to-cart' | 'link';
-    brand?: string;
-    category?: string;
-    varietal?: string;
-    region?: string;
-    vintage?: number;
-    body?: string;
-    sweetness?: string;
+    condition?: string;
+    body_type?: string;
+    drive_type?: string;
+    fuel_type?: string;
+    mileage?: number;
+    engine?: string;
+    year?: number;
+    key_features?: string[];
     description?: string;
-    tasting_notes?: string;
-    flavor_profile?: string[];
-    food_pairings?: string[];
     rankPosition?: number;
     onAddToCart?: () => void;
     onProductAction?: () => void;
@@ -33,49 +29,63 @@
     title,
     price,
     originalPrice,
-    rating,
-    discount,
     shopLink,
     actionType = 'add-to-cart',
-    brand,
-    category,
-    varietal,
-    region,
-    vintage,
-    body,
-    sweetness,
+    condition,
+    body_type,
+    drive_type,
+    fuel_type,
+    mileage,
+    engine,
+    year,
+    key_features,
     description,
-    tasting_notes,
-    flavor_profile,
-    food_pairings,
     rankPosition,
     onAddToCart,
     onProductAction
   }: ProductCardProps = $props();
 
-  let hasDiscount = $derived(discount !== undefined && discount > 0);
-  let finalPrice = $derived(price);
-
   function formatPrice(value: number | null | undefined): string {
-    if (value == null || isNaN(value)) return '$0.00';
-    return `$${value.toFixed(2)}`;
+    if (value == null || isNaN(value)) return '$0';
+    return `$${value.toLocaleString()}`;
   }
 
-  function handleAddToCart() {
-    onAddToCart?.();
+  function capitalizeFirst(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
   }
+
+  const CONDITION_LABELS: Record<string, string> = {
+    new: 'New', used: 'Used', cpo: 'CPO',
+  };
+
+  const BODY_TYPE_LABELS: Record<string, string> = {
+    suv: 'SUV', truck: 'Truck', sedan: 'Sedan', hatchback: 'Hatchback',
+    minivan: 'Minivan', coupe: 'Coupe', convertible: 'Convertible', wagon: 'Wagon',
+  };
+
+  const DRIVE_TYPE_LABELS: Record<string, string> = {
+    awd: 'AWD', '4wd': '4WD', fwd: 'FWD', rwd: 'RWD',
+  };
+
+  const FUEL_TYPE_LABELS: Record<string, string> = {
+    gasoline: 'Gas', hybrid: 'Hybrid', electric: 'Electric',
+    'plug-in-hybrid': 'PHEV', diesel: 'Diesel',
+  };
+
+  let conditionLabel = $derived(condition ? (CONDITION_LABELS[condition.toLowerCase()] ?? capitalizeFirst(condition)) : null);
+  let bodyLabel = $derived(body_type ? (BODY_TYPE_LABELS[body_type.toLowerCase()] ?? capitalizeFirst(body_type)) : null);
+  let driveLabel = $derived(drive_type ? (DRIVE_TYPE_LABELS[drive_type.toLowerCase()] ?? drive_type.toUpperCase()) : null);
+  let fuelLabel = $derived(fuel_type ? (FUEL_TYPE_LABELS[fuel_type.toLowerCase()] ?? capitalizeFirst(fuel_type)) : null);
+  let mileageLabel = $derived(mileage != null ? (mileage === 0 ? 'New' : `${mileage.toLocaleString()} mi`) : null);
+  let visibleFeatures = $derived(key_features ? key_features.slice(0, 3) : []);
 
   function handleProductAction() {
     onProductAction?.();
     if (actionType === 'link' && shopLink) {
       window.open(shopLink, '_blank', 'noopener,noreferrer');
     } else {
-      handleAddToCart();
+      onAddToCart?.();
     }
-  }
-
-  function capitalizeFirst(s: string): string {
-    return s.charAt(0).toUpperCase() + s.slice(1);
   }
 </script>
 
@@ -83,93 +93,61 @@
   {#if image}
     <div class="product-card__image-wrapper">
       <img src={image} alt={title} class="product-card__image" />
-      {#if hasDiscount}
-        <span class="product-card__badge">-{discount}%</span>
-      {/if}
     </div>
   {/if}
 
   <div class="product-card__content">
-    {#if brand}
-      <div class="product-card__brand">{brand}</div>
-    {/if}
     <h3 class="product-card__title">{title}</h3>
 
-    {#if varietal || region || vintage}
-      <div class="product-card__subtitle">
-        {#if varietal}{capitalizeFirst(varietal)}{/if}
-        {#if varietal && region} · {/if}
-        {#if region}{capitalizeFirst(region)}{/if}
-        {#if vintage} · {vintage}{/if}
+    <div class="product-card__badges">
+      {#if conditionLabel}
+        <span class="product-card__badge product-card__badge--condition">{conditionLabel}</span>
+      {/if}
+      {#if bodyLabel}
+        <span class="product-card__badge product-card__badge--body">{bodyLabel}</span>
+      {/if}
+      {#if driveLabel}
+        <span class="product-card__badge product-card__badge--drive">{driveLabel}</span>
+      {/if}
+      {#if fuelLabel && fuel_type !== 'gasoline'}
+        <span class="product-card__badge product-card__badge--fuel">{fuelLabel}</span>
+      {/if}
+    </div>
+
+    {#if mileageLabel || engine}
+      <div class="product-card__specs">
+        {#if mileageLabel}<span>{mileageLabel}</span>{/if}
+        {#if mileageLabel && engine}<span class="product-card__specs-sep">·</span>{/if}
+        {#if engine}<span>{engine}</span>{/if}
       </div>
     {/if}
 
-    {#if rating !== undefined}
-      <div class="product-card__rating">
-        {#each Array(5) as _, i}
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill={i < Math.floor(rating) ? 'currentColor' : 'none'}
-            stroke="currentColor"
-            stroke-width="1.5"
-            xmlns="http://www.w3.org/2000/svg"
-            class="product-card__star"
-          >
-            <path
-              d="M7 1L8.854 5.146L13 6.146L10 9.146L10.708 13.292L7 11.146L3.292 13.292L4 9.146L1 6.146L5.146 5.146L7 1Z"
-            />
-          </svg>
+    {#if description}
+      <p class="product-card__description">{description}</p>
+    {/if}
+
+    {#if visibleFeatures.length > 0}
+      <div class="product-card__features">
+        {#each visibleFeatures as feature}
+          <span class="product-card__feature-chip">{feature}</span>
         {/each}
-        <span class="product-card__rating-value">{rating != null ? rating.toFixed(1) : '0.0'}</span>
       </div>
     {/if}
 
     <div class="product-card__pricing">
-      <div class="product-card__price-wrapper">
-        <span class="product-card__price">{formatPrice(finalPrice)}</span>
-        {#if hasDiscount && originalPrice}
-          <span class="product-card__original-price">{formatPrice(originalPrice)}</span>
-        {/if}
-      </div>
-      <div class="product-card__badges">
-        {#if body}
-          <div class="product-card__wine-badge">
-            <div class="product-card__badge-label">Body</div>
-            <div class="product-card__badge-value">{capitalizeFirst(body)}</div>
-          </div>
-        {/if}
-        {#if category}
-          <div class="product-card__wine-badge">
-            <div class="product-card__badge-label">Type</div>
-            <div class="product-card__badge-value">{capitalizeFirst(category)}</div>
-          </div>
-        {/if}
-      </div>
+      <span class="product-card__price">{formatPrice(price)}</span>
+      {#if originalPrice && originalPrice > price}
+        <span class="product-card__original-price">{formatPrice(originalPrice)}</span>
+      {/if}
     </div>
 
-    {#if tasting_notes}
-      <div class="product-card__notes">{tasting_notes}</div>
-    {/if}
-
-    {#if actionType === 'link' && shopLink}
-      <Button
-        label="View Wine"
-        variant="primary"
-        size="sm"
-        onclick={handleProductAction}
-        fullWidth={true}
-      />
-    {:else}
-      <Button
-        label="View Wine"
-        variant="primary"
-        size="sm"
-        onclick={handleProductAction}
-        fullWidth={true}
-      />
-    {/if}
+    <Button
+      label="View Vehicle"
+      variant="primary"
+      size="sm"
+      onclick={handleProductAction}
+      fullWidth={true}
+    />
   </div>
 </div>
 
@@ -194,7 +172,7 @@
   .product-card__image-wrapper {
     position: relative;
     width: 100%;
-    padding-top: 75%;
+    padding-top: 62%;
     background: #f3f4f6;
     overflow: hidden;
   }
@@ -210,188 +188,134 @@
   }
 
   .product-card:hover .product-card__image {
-    transform: scale(1.05);
-  }
-
-  .product-card__badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #ef4444;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    transform: scale(1.04);
   }
 
   .product-card__content {
-    padding: 16px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
 
-  .product-card__brand {
-    font-size: 11px;
-    font-weight: 500;
-    color: #6b7280;
-    margin: 0 0 4px 0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  }
-
-  :global(.dark) .product-card__brand,
-  :global([data-theme="dark"]) .product-card__brand {
-    color: #858585;
-  }
-
   .product-card__title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: #111827;
     margin: 0;
-    line-height: 1.4;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    line-height: 1.35;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-  }
-
-  .product-card__subtitle {
-    font-size: 12px;
-    color: #6b7280;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  }
-
-  :global(.dark) .product-card__subtitle,
-  :global([data-theme="dark"]) .product-card__subtitle {
-    color: #858585;
-  }
-
-  .product-card__notes {
-    font-size: 12px;
-    color: #6b7280;
-    font-style: italic;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  }
-
-  :global(.dark) .product-card__notes,
-  :global([data-theme="dark"]) .product-card__notes {
-    color: #858585;
-  }
-
-  .product-card__rating {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .product-card__star {
-    color: #fbbf24;
-    width: 14px;
-    height: 14px;
-  }
-
-  .product-card__rating-value {
-    font-size: 12px;
-    color: #6b7280;
-    margin-left: 4px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  }
-
-  .product-card__pricing {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .product-card__price-wrapper {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    flex: 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
 
   .product-card__badges {
     display: flex;
-    gap: 6px;
-    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: 5px;
   }
 
-  .product-card__wine-badge {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 6px 7px;
-    background: #f5f0e8;
-    border-radius: 6px;
-    min-width: 48px;
-    flex-shrink: 0;
-  }
-
-  .product-card__badge-label {
+  .product-card__badge {
     font-size: 10px;
-    font-weight: 500;
-    color: #111827;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 4px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    letter-spacing: 0.4px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
 
-  .product-card__badge-value {
-    font-size: 13px;
-    font-weight: 400;
-    color: #111827;
-    line-height: 1.2;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  .product-card__badge--condition {
+    background: #dbeafe;
+    color: #1e40af;
   }
 
-  :global(.dark) .product-card__wine-badge,
-  :global([data-theme="dark"]) .product-card__wine-badge {
-    background: #2d2d30;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  .product-card__badge--body {
+    background: #f3f4f6;
+    color: #374151;
   }
 
-  :global(.dark) .product-card__badge-label,
-  :global([data-theme="dark"]) .product-card__badge-label {
-    color: #cccccc;
+  .product-card__badge--drive {
+    background: #dcfce7;
+    color: #166534;
   }
 
-  :global(.dark) .product-card__badge-value,
-  :global([data-theme="dark"]) .product-card__badge-value {
-    color: #cccccc;
+  .product-card__badge--fuel {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .product-card__specs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #6b7280;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  .product-card__specs-sep {
+    color: #d1d5db;
+  }
+
+  .product-card__description {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  .product-card__features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .product-card__feature-chip {
+    font-size: 10px;
+    color: #374151;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+  }
+
+  .product-card__pricing {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
   }
 
   .product-card__price {
     font-size: 20px;
     font-weight: 700;
     color: #111827;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
 
   .product-card__original-price {
-    font-size: 14px;
+    font-size: 13px;
     color: #9ca3af;
     text-decoration: line-through;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   }
 
   .product-card :global(.btn) {
-    margin-top: 4px;
+    margin-top: 2px;
   }
 
   :global(.dark) .product-card,
@@ -408,17 +332,12 @@
 
   :global(.dark) .product-card__title,
   :global([data-theme="dark"]) .product-card__title {
-    color: #cccccc;
+    color: #e5e7eb;
   }
 
   :global(.dark) .product-card__price,
   :global([data-theme="dark"]) .product-card__price {
-    color: #cccccc;
-  }
-
-  :global(.dark) .product-card__original-price,
-  :global([data-theme="dark"]) .product-card__original-price {
-    color: #858585;
+    color: #e5e7eb;
   }
 
   :global(.dark) .product-card__image-wrapper,
@@ -438,7 +357,7 @@
     }
 
     .product-card__title {
-      font-size: 15px;
+      font-size: 14px;
     }
 
     .product-card__price {

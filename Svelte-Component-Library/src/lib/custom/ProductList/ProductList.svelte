@@ -7,16 +7,16 @@
     title: string;
     price: number;
     originalPrice?: number;
-    rating?: number;
-    discount?: number;
     shopLink?: string;
-    brand?: string;
-    category?: string;
-    subcategory?: string;
-    thc_percentage?: number;
-    thc_per_unit_mg?: number;
-    thc_total_mg?: number;
-    pack_count?: number;
+    condition?: string;
+    body_type?: string;
+    drive_type?: string;
+    fuel_type?: string;
+    mileage?: number;
+    engine?: string;
+    year?: number;
+    key_features?: string[];
+    description?: string;
     rankPosition?: number;
   }
 
@@ -56,16 +56,16 @@
             title={product.title}
             price={product.price}
             originalPrice={product.originalPrice}
-            rating={product.rating}
-            discount={product.discount}
             shopLink={product.shopLink}
-            brand={product.brand}
-            category={product.category}
-            subcategory={product.subcategory}
-            thc_percentage={product.thc_percentage}
-            thc_per_unit_mg={product.thc_per_unit_mg}
-            thc_total_mg={product.thc_total_mg}
-            pack_count={product.pack_count}
+            condition={product.condition}
+            body_type={product.body_type}
+            drive_type={product.drive_type}
+            fuel_type={product.fuel_type}
+            mileage={product.mileage}
+            engine={product.engine}
+            year={product.year}
+            key_features={product.key_features}
+            description={product.description}
             rankPosition={product.rankPosition}
             actionType={actionType}
             onAddToCart={() => handleAddToCart(product)}

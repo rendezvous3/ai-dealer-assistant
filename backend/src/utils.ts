@@ -1,13 +1,16 @@
 import {
-  isValidAcidity,
-  isValidBody,
-  isValidStyleTag,
-  isValidSweetness,
-  isValidTannin,
-  isValidWineType,
-  normalizeStyleTag
-} from './wine-schema';
-import type { WineFilters } from './wine-search';
+  isValidCondition,
+  isValidBodyType,
+  isValidDriveType,
+  isValidFuelType,
+  isValidUseCaseTag,
+  isValidPriorityTag,
+  normalizeCondition,
+  normalizeBodyType,
+  normalizeDriveType,
+  normalizeFuelType,
+} from './vehicle-schema';
+import type { VehicleFilters } from './vehicle-search';
 
 const formatConversationHistory = (messageList: Array<any>) => {
     const formattedMessages = messageList.map(message => {
@@ -17,11 +20,8 @@ const formatConversationHistory = (messageList: Array<any>) => {
     return formattedMessages.join('\n');
 }
 
-/**
- * Validates and normalizes wine filters from the intent API.
- */
-export function validateWineFilters(filters: Record<string, any>): WineFilters {
-  const validated: WineFilters = {};
+export function validateVehicleFilters(filters: Record<string, any>): VehicleFilters {
+  const validated: VehicleFilters = {};
   const normalizeStringArray = (value: unknown): string[] => {
     const rawValues = Array.isArray(value) ? value : [value];
     return rawValues
@@ -29,192 +29,91 @@ export function validateWineFilters(filters: Record<string, any>): WineFilters {
       .filter((entry) => entry.length > 0);
   };
 
-  if (filters.wine_type) {
-    const wt = String(filters.wine_type).toLowerCase();
-    if (isValidWineType(wt)) {
-      validated.wine_type = wt;
-    }
+  if (filters.condition) {
+    const normalized = normalizeCondition(String(filters.condition).toLowerCase());
+    if (normalized && isValidCondition(normalized)) validated.condition = normalized;
   }
-
-  if (filters.varietal) {
-    const varietals = normalizeStringArray(filters.varietal);
-    if (varietals.length === 1) {
-      validated.varietal = varietals[0];
-    } else if (varietals.length > 1) {
-      validated.varietal = varietals;
-    }
+  if (filters.body_type) {
+    const normalized = normalizeBodyType(String(filters.body_type).toLowerCase());
+    if (normalized && isValidBodyType(normalized)) validated.body_type = normalized;
   }
-
-  if (filters.region) {
-    validated.region = String(filters.region).toLowerCase();
+  if (filters.make) validated.make = String(filters.make);
+  if (filters.model) validated.model = String(filters.model);
+  if (filters.year_min != null) validated.year_min = Number(filters.year_min);
+  if (filters.year_max != null) validated.year_max = Number(filters.year_max);
+  if (filters.drive_type) {
+    const normalized = normalizeDriveType(String(filters.drive_type).toLowerCase());
+    if (normalized && isValidDriveType(normalized)) validated.drive_type = normalized;
   }
-
-  if (filters.body) {
-    const b = String(filters.body).toLowerCase();
-    if (isValidBody(b)) {
-      validated.body = b;
-    }
+  if (filters.fuel_type) {
+    const normalized = normalizeFuelType(String(filters.fuel_type).toLowerCase());
+    if (normalized && isValidFuelType(normalized)) validated.fuel_type = normalized;
   }
+  if (filters.price_min != null) validated.price_min = Number(filters.price_min);
+  if (filters.price_max != null) validated.price_max = Number(filters.price_max);
+  if (filters.mileage_max != null) validated.mileage_max = Number(filters.mileage_max);
+  if (filters.seats_min != null) validated.seats_min = Number(filters.seats_min);
 
-  if (filters.sweetness) {
-    const s = String(filters.sweetness).toLowerCase();
-    if (isValidSweetness(s)) {
-      validated.sweetness = s;
-    }
+  if (filters.use_case_tags && Array.isArray(filters.use_case_tags)) {
+    const validTags = normalizeStringArray(filters.use_case_tags).filter(isValidUseCaseTag);
+    if (validTags.length > 0) validated.use_case_tags = [...new Set(validTags)];
   }
-
-  if (filters.acidity) {
-    const a = String(filters.acidity).toLowerCase();
-    if (isValidAcidity(a)) {
-      validated.acidity = a;
-    }
-  }
-
-  if (filters.tannin) {
-    const t = String(filters.tannin).toLowerCase();
-    if (isValidTannin(t)) {
-      validated.tannin = t;
-    }
-  }
-
-  if (filters.brand) {
-    validated.brand = String(filters.brand);
-  }
-
-  if (filters.price_min != null) {
-    validated.price_min = Number(filters.price_min);
-  }
-  if (filters.price_max != null) {
-    validated.price_max = Number(filters.price_max);
-  }
-
-  if (filters.food_pairing) {
-    validated.food_pairing = String(filters.food_pairing).toLowerCase();
-  }
-
-  if (filters.occasion) {
-    validated.occasion = String(filters.occasion).toLowerCase();
-  }
-
-  if (filters.flavor_profile && Array.isArray(filters.flavor_profile)) {
-    validated.flavor_profile = normalizeStringArray(filters.flavor_profile);
-  }
-
-  if (filters.style_tags) {
-    const normalizedStyleTags = normalizeStringArray(filters.style_tags)
-      .map((tag) => normalizeStyleTag(tag) ?? tag)
-      .filter((tag): tag is string => !!tag && isValidStyleTag(tag));
-
-    if (normalizedStyleTags.length > 0) {
-      validated.style_tags = [...new Set(normalizedStyleTags)];
-    }
+  if (filters.priority_tags && Array.isArray(filters.priority_tags)) {
+    const validTags = normalizeStringArray(filters.priority_tags).filter(isValidPriorityTag);
+    if (validTags.length > 0) validated.priority_tags = [...new Set(validTags)];
   }
 
   return validated;
 }
 
-/**
- * Builds a compact representation of wine results for the re-ranker LLM.
- * Only includes metadata fields — no similarity scores.
- */
 export function buildCompactRerankCandidates(
-  wines: Array<Record<string, any>>
+  vehicles: Array<Record<string, any>>
 ): Array<Record<string, any>> {
-  return wines.map((wine) => {
+  return vehicles.map((v) => {
     const candidate: Record<string, any> = {
-      id: wine.id,
-      name: wine.name,
-      brand: wine.brand,
-      wine_type: wine.wine_type,
+      id: v.id, year: v.year, make: v.make, model: v.model, trim: v.trim,
+      condition: v.condition, body_type: v.body_type, price: v.price,
     };
-
-    if (wine.varietal) candidate.varietal = wine.varietal;
-    if (wine.region) candidate.region = wine.region;
-    if (wine.vintage) candidate.vintage = wine.vintage;
-    if (wine.body) candidate.body = wine.body;
-    if (wine.sweetness) candidate.sweetness = wine.sweetness;
-    if (wine.tannin) candidate.tannin = wine.tannin;
-    if (wine.price != null) candidate.price = wine.price;
-
-    if (Array.isArray(wine.flavor_profile) && wine.flavor_profile.length > 0) {
-      candidate.flavor_profile = wine.flavor_profile;
+    if (v.drive_type) candidate.drive_type = v.drive_type;
+    if (v.fuel_type) candidate.fuel_type = v.fuel_type;
+    if (v.mileage != null) candidate.mileage = v.mileage;
+    if (v.engine) candidate.engine = v.engine;
+    if (v.seats) candidate.seats = v.seats;
+    if (v.mpg_city) candidate.mpg_city = v.mpg_city;
+    if (v.mpg_highway) candidate.mpg_highway = v.mpg_highway;
+    if (Array.isArray(v.use_case_tags) && v.use_case_tags.length > 0) candidate.use_case_tags = v.use_case_tags;
+    if (Array.isArray(v.priority_tags) && v.priority_tags.length > 0) candidate.priority_tags = v.priority_tags;
+    if (Array.isArray(v.key_features) && v.key_features.length > 0) candidate.key_features = v.key_features.slice(0, 5);
+    if (v.description) {
+      const desc = String(v.description).replace(/\s+/g, ' ').trim();
+      candidate.description = desc.length > 200 ? desc.slice(0, 197) + '...' : desc;
     }
-    if (Array.isArray(wine.style_tags) && wine.style_tags.length > 0) {
-      candidate.style_tags = wine.style_tags;
-    }
-    if (Array.isArray(wine.food_pairings) && wine.food_pairings.length > 0) {
-      candidate.food_pairings = wine.food_pairings;
-    }
-    if (Array.isArray(wine.occasions) && wine.occasions.length > 0) {
-      candidate.occasions = wine.occasions;
-    }
-
-    if (wine.tasting_notes) {
-      const notes = String(wine.tasting_notes).replace(/\s+/g, ' ').trim();
-      candidate.tasting_notes = notes.length > 200 ? notes.slice(0, 197) + '...' : notes;
-    }
-
     return candidate;
   });
 }
 
-/**
- * Extracts and parses JSON from LLM responses with maximum resilience.
- * Handles: markdown blocks, incomplete JSON, extra text, malformed braces, etc.
- */
 export function parseRobustJSON(rawText: string): { success: boolean; data?: any; error?: string } {
-  if (!rawText || typeof rawText !== 'string') {
-    return { success: false, error: 'Empty or invalid input' };
-  }
-
+  if (!rawText || typeof rawText !== 'string') return { success: false, error: 'Empty or invalid input' };
   let text = rawText.trim();
+  if (text.startsWith('```json')) text = text.replace(/^```json\s*/i, '').replace(/\s*```$/g, '');
+  else if (text.startsWith('```')) text = text.replace(/^```\s*/, '').replace(/\s*```$/g, '');
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').replace(/<[^>]+>/g, '').trim();
+  if (!text) return { success: false, error: 'Empty text after cleaning' };
 
-  // Step 1: Remove markdown code blocks
-  if (text.startsWith('```json')) {
-    text = text.replace(/^```json\s*/i, '').replace(/\s*```$/g, '');
-  } else if (text.startsWith('```')) {
-    text = text.replace(/^```\s*/, '').replace(/\s*```$/g, '');
-  }
-
-  // Step 2: Remove thinking tags and XML-like tags
-  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
-  text = text.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
-  text = text.replace(/<[^>]+>/g, '');
-  text = text.trim();
-
-  if (!text || text.length === 0) {
-    return { success: false, error: 'Empty text after cleaning' };
-  }
-
-  // Step 3: Extract JSON object (find first { and matching })
-  let jsonText = text;
   const firstBrace = text.indexOf('{');
+  if (firstBrace === -1) return { success: false, error: 'No opening brace found' };
 
-  if (firstBrace === -1) {
-    return { success: false, error: 'No opening brace found' };
-  }
-
-  // Find matching closing brace
-  let braceCount = 0;
-  let endBrace = -1;
+  let braceCount = 0, endBrace = -1;
   for (let i = firstBrace; i < text.length; i++) {
     if (text[i] === '{') braceCount++;
     if (text[i] === '}') braceCount--;
-    if (braceCount === 0) {
-      endBrace = i + 1;
-      break;
-    }
+    if (braceCount === 0) { endBrace = i + 1; break; }
   }
 
-  // Step 4: Handle incomplete JSON (missing closing braces)
+  let jsonText: string;
   if (endBrace === -1 || braceCount > 0) {
     jsonText = text.substring(firstBrace);
-
-    let openBraces = 0;
-    let openBrackets = 0;
-    let inString = false;
-    let escapeNext = false;
-
+    let openBraces = 0, openBrackets = 0, inString = false, escapeNext = false;
     for (let i = 0; i < jsonText.length; i++) {
       const char = jsonText[i];
       if (escapeNext) { escapeNext = false; continue; }
@@ -227,7 +126,6 @@ export function parseRobustJSON(rawText: string): { success: boolean; data?: any
         if (char === ']') openBrackets--;
       }
     }
-
     jsonText = jsonText.replace(/,(\s*)$/, '$1');
     for (let i = 0; i < openBrackets; i++) jsonText += ']';
     for (let i = 0; i < openBraces; i++) jsonText += '}';
@@ -235,55 +133,34 @@ export function parseRobustJSON(rawText: string): { success: boolean; data?: any
     jsonText = text.substring(firstBrace, endBrace);
   }
 
-  // Step 5: Attempt to parse
   try {
-    const parsed = JSON.parse(jsonText);
-    return { success: true, data: parsed };
+    return { success: true, data: JSON.parse(jsonText) };
   } catch (parseError) {
-    // Step 6: Try cleaning common JSON errors
     try {
-      let cleaned = jsonText;
-      cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
-      cleaned = cleaned.replace(/}\s*"([^"]+)":/g, '}, "$1":');
-      cleaned = cleaned.replace(/]\s*"([^"]+)":/g, '], "$1":');
-
-      let quoteCount = 0;
-      let lastQuoteIndex = -1;
+      let cleaned = jsonText
+        .replace(/,(\s*[}\]])/g, '$1')
+        .replace(/}\s*"([^"]+)":/g, '}, "$1":')
+        .replace(/]\s*"([^"]+)":/g, '], "$1":');
+      let quoteCount = 0, lastQuoteIndex = -1;
       for (let i = 0; i < cleaned.length; i++) {
-        if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== '\\')) {
-          quoteCount++;
-          lastQuoteIndex = i;
-        }
+        if (cleaned[i] === '"' && (i === 0 || cleaned[i - 1] !== '\\')) { quoteCount++; lastQuoteIndex = i; }
       }
       if (quoteCount % 2 !== 0 && lastQuoteIndex !== -1) {
         const afterQuote = cleaned.substring(lastQuoteIndex + 1);
         const nextSpecial = afterQuote.search(/[,}\]]/);
-        if (nextSpecial !== -1) {
-          cleaned = cleaned.substring(0, lastQuoteIndex + 1 + nextSpecial) + '"' + cleaned.substring(lastQuoteIndex + 1 + nextSpecial);
-        } else {
-          cleaned = cleaned + '"';
-        }
+        if (nextSpecial !== -1) cleaned = cleaned.substring(0, lastQuoteIndex + 1 + nextSpecial) + '"' + cleaned.substring(lastQuoteIndex + 1 + nextSpecial);
+        else cleaned += '"';
       }
-
       cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
-
-      const parsed = JSON.parse(cleaned);
-      return { success: true, data: parsed };
-    } catch (finalError) {
-      // Step 7: Final fallback - extract ranked_ids with regex
+      return { success: true, data: JSON.parse(cleaned) };
+    } catch {
       try {
         const idsMatch = jsonText.match(/"ranked_ids":\s*\[(.*?)\]/s);
         if (idsMatch) {
           const rankedIds = [...idsMatch[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
-          if (rankedIds.length > 0) {
-            return {
-              success: true,
-              data: { ranked_ids: rankedIds, reasoning: "Partial parse - extracted IDs only" }
-            };
-          }
+          if (rankedIds.length > 0) return { success: true, data: { ranked_ids: rankedIds, reasoning: "Partial parse" } };
         }
-      } catch { /* regex extraction failed */ }
-
+      } catch { /* regex failed */ }
       const errorMsg = parseError instanceof Error ? parseError.message : String(parseError);
       return { success: false, error: `JSON parse failed: ${errorMsg}` };
     }

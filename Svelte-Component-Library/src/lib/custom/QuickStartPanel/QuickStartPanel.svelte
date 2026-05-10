@@ -4,7 +4,7 @@
   export interface QuickStartRequest {
     label: string;
     prompt: string;
-    icon: string;
+    icon?: string;
   }
 
   interface QuickStartPanelProps {

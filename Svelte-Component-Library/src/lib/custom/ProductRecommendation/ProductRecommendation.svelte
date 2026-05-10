@@ -11,6 +11,19 @@
     title: string;
     price: number;
     originalPrice?: number;
+    shopLink?: string;
+    brand?: string;
+    condition?: string;
+    body_type?: string;
+    drive_type?: string;
+    fuel_type?: string;
+    mileage?: number;
+    engine?: string;
+    year?: number;
+    key_features?: string[];
+    description?: string;
+    rankPosition?: number;
+    // legacy wine fields kept for TS compat
     rating?: number;
     discount?: number;
     category?: string;
@@ -20,12 +33,9 @@
     vintage?: number;
     body?: string;
     sweetness?: string;
-    shopLink?: string;
-    brand?: string;
     tasting_notes?: string;
     flavor_profile?: string[];
     food_pairings?: string[];
-    rankPosition?: number;
   }
 
   interface ProductRecommendationProps {
@@ -285,7 +295,7 @@
                 aria-label={actionType === 'link' ? `Open ${product.title} in shop` : `Add ${product.title} to cart`}
                 style="{effectiveThemeColor ? `background: ${effectiveThemeColor};` : ''}"
               >
-                <span>View Wine</span>
+                <span>View Vehicle</span>
                 <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
                   <path d="M7 4H4C2.89543 4 2 4.89543 2 6V14C2 15.1046 2.89543 16 4 16H12C13.1046 16 14 15.1046 14 14V11M11 2H16M16 2V7M16 2L7 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -302,19 +312,16 @@
             title={product.title}
             price={product.price}
             originalPrice={product.originalPrice}
-            rating={product.rating}
-            discount={product.discount}
             shopLink={product.shopLink}
-            brand={product.brand}
-            category={product.category}
-            varietal={product.varietal}
-            region={product.region}
-            vintage={product.vintage}
-            body={product.body}
-            sweetness={product.sweetness}
-            tasting_notes={product.tasting_notes}
-            flavor_profile={product.flavor_profile}
-            food_pairings={product.food_pairings}
+            condition={product.condition}
+            body_type={product.body_type}
+            drive_type={product.drive_type}
+            fuel_type={product.fuel_type}
+            mileage={product.mileage}
+            engine={product.engine}
+            year={product.year}
+            key_features={product.key_features}
+            description={product.description}
             rankPosition={product.rankPosition}
             onAddToCart={() => handleAddToCart(product)}
             actionType={actionType}

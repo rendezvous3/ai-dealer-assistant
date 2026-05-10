@@ -1,4 +1,4 @@
-name = "wine-chat-backend"
+name = "dealer-chat-backend"
 main = "src/index.ts"
 compatibility_date = "2025-11-24"
 
@@ -8,14 +8,14 @@ port = 9174
 [vars]
 PROFILE_TYPE = "MERCHANT"
 
-# Product/catalog data. Current code still expects this binding for wine lookup.
+# Vehicle catalog — D1 database
 [[d1_databases]]
-binding = "WINE_DB"
-database_name = "wine-catalog"
+binding = "VEHICLES_DB"
+database_name = "vehicle-catalog"
 database_id = "c1d9a63c-d943-46d8-857a-907e0c95a66f"
 
 # Chat/session/search/compliance analytics writes.
 [[d1_databases]]
 binding = "ANALYTICS_DB"
-database_name = "wine-chat-analytics"
+database_name = "dealer-chat-analytics"
 database_id = "64d58a3a-ed1c-4ec2-b871-eee1adbb69dd"

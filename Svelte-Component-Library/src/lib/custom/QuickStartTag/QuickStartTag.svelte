@@ -1,7 +1,7 @@
 <script lang="ts">
   interface QuickStartTagProps {
     label: string;
-    icon: string;
+    icon?: string;
     disabled?: boolean;
     onclick?: () => void;
   }
@@ -20,9 +20,11 @@
   {disabled}
   onclick={onclick}
 >
-  <span class="quick-start-tag__icon-slot">
-    <img src={icon} alt="" class="quick-start-tag__icon" />
-  </span>
+  {#if icon}
+    <span class="quick-start-tag__icon-slot">
+      <img src={icon} alt="" class="quick-start-tag__icon" />
+    </span>
+  {/if}
   <span class="quick-start-tag__label">{label}</span>
 </button>
 

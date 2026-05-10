@@ -4,9 +4,6 @@
   import ChatMessage from "../../Svelte-Component-Library/src/lib/custom/ChatMessage/ChatMessage.svelte";
   import ShimmerText from "../../Svelte-Component-Library/src/lib/custom/ShimmerText/ShimmerText.svelte";
   import WelcomeQuickStart from "../../Svelte-Component-Library/src/lib/custom/WelcomeQuickStart/WelcomeQuickStart.svelte";
-  import WineClubCard from "../../Svelte-Component-Library/src/lib/custom/WineClubCard/WineClubCard.svelte";
-  import WineComparisonCard from "../../Svelte-Component-Library/src/lib/custom/WineComparisonCard/WineComparisonCard.svelte";
-  import CorporateGiftingCard from "../../Svelte-Component-Library/src/lib/custom/CorporateGiftingCard/CorporateGiftingCard.svelte";
   import TranscriptShareCard from "../../Svelte-Component-Library/src/lib/custom/TranscriptShareCard/TranscriptShareCard.svelte";
   import EducationPanel from "./components/EducationPanel.svelte";
   import type { QuickStartRequest } from "../../Svelte-Component-Library/src/lib/custom/QuickStartPanel/QuickStartPanel.svelte";
@@ -20,32 +17,20 @@
     subscribeToWidgetCommands
   } from "./embed-bridge";
   import { theme } from "./theme.svelte.js";
-  import { WINE_EDUCATION_PANELS } from "./wine-education";
+  import { CAR_EDUCATION_PANELS } from './car-education';
 
   import chatIcon from "./icons/assistant/chat.png";
 
-  // Wine SVG icons (inline for POC — no external icon files needed)
-  const wineRedIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6C16 6 12 14 12 20C12 24.4 15.6 28 20 28C24.4 28 28 24.4 28 20C28 14 24 6 20 6Z" fill="#8B2252"/><rect x="18.5" y="28" width="3" height="6" rx="1" fill="currentColor"/><rect x="14" y="33" width="12" height="2" rx="1" fill="currentColor"/></svg>';
-  const wineWhiteIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6C16 6 12 14 12 20C12 24.4 15.6 28 20 28C24.4 28 28 24.4 28 20C28 14 24 6 20 6Z" fill="#F0E68C"/><rect x="18.5" y="28" width="3" height="6" rx="1" fill="currentColor"/><rect x="14" y="33" width="12" height="2" rx="1" fill="currentColor"/></svg>';
-  const wineRoseIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6C16 6 12 14 12 20C12 24.4 15.6 28 20 28C24.4 28 28 24.4 28 20C28 14 24 6 20 6Z" fill="#FFB6C1"/><rect x="18.5" y="28" width="3" height="6" rx="1" fill="currentColor"/><rect x="14" y="33" width="12" height="2" rx="1" fill="currentColor"/></svg>';
-  const wineSparklingIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6C16 6 12 14 12 20C12 24.4 15.6 28 20 28C24.4 28 28 24.4 28 20C28 14 24 6 20 6Z" fill="#E8E8A0"/><circle cx="16" cy="16" r="1" fill="white" opacity="0.8"/><circle cx="22" cy="14" r="1.2" fill="white" opacity="0.6"/><circle cx="19" cy="19" r="0.8" fill="white" opacity="0.7"/><rect x="18.5" y="28" width="3" height="6" rx="1" fill="currentColor"/><rect x="14" y="33" width="12" height="2" rx="1" fill="currentColor"/></svg>';
-  const wineDessertIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6C16 6 12 14 12 20C12 24.4 15.6 28 20 28C24.4 28 28 24.4 28 20C28 14 24 6 20 6Z" fill="#DAA520"/><rect x="18.5" y="28" width="3" height="6" rx="1" fill="currentColor"/><rect x="14" y="33" width="12" height="2" rx="1" fill="currentColor"/></svg>';
-  const wineSurpriseIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="2"/><text x="20" y="26" text-anchor="middle" fill="currentColor" font-size="18" font-weight="bold">?</text></svg>';
-
-  // Flavor family icons (simple colored circles for POC)
-  const flavorBerryIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#C41E3A"/></svg>';
-  const flavorCitrusIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#FFD700"/></svg>';
-  const flavorTropicalIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#FF8C00"/></svg>';
-  const flavorChocolateIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#5C3317"/></svg>';
-  const flavorVanillaIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#F3E5AB"/></svg>';
-  const flavorPepperIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#B22222"/></svg>';
-  const flavorFloralIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#DDA0DD"/></svg>';
-  const flavorEarthyIcon = '<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#8B7355"/></svg>';
-  const wineBasicsMenuIcon = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 4.75H15M5 8.5H15M5 12.25H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="3.25" y="2.75" width="13.5" height="14.5" rx="2.25" stroke="currentColor" stroke-width="1.5"/></svg>';
-  const sparklingGuideMenuIcon = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 3.5V7.5M8 7.5H12M9 7.5V15.25M6.5 15.25H11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="13.75" cy="5.25" r="1" fill="currentColor"/><circle cx="15.5" cy="8" r="1" fill="currentColor" opacity="0.75"/><circle cx="13" cy="9.5" r="0.85" fill="currentColor" opacity="0.65"/></svg>';
-  const foodPairingMenuIcon = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5.5 3.5V10.5M7.5 3.5V10.5M5.5 7.25H7.5M6.5 10.5V16.5M12.5 3.5V8.25C12.5 9.49264 13.5074 10.5 14.75 10.5V16.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const servingTipsMenuIcon = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 4.25V11.25M10 11.25C8.48122 11.25 7.25 12.4812 7.25 14C7.25 15.5188 8.48122 16.75 10 16.75C11.5188 16.75 12.75 15.5188 12.75 14C12.75 12.4812 11.5188 11.25 10 11.25Z" stroke="currentColor" stroke-width="1.5"/><path d="M10 4.25C11.3807 4.25 12.5 3.13071 12.5 1.75V1.25H7.5V1.75C7.5 3.13071 8.61929 4.25 10 4.25Z" stroke="currentColor" stroke-width="1.5"/></svg>';
-  const glossaryMenuIcon = '<svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.25" y="3.25" width="13.5" height="13.5" rx="2.25" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 7H13.5M6.5 10H13.5M6.5 13H10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  // Car SVG icons (inline for POC — no external icon files needed)
+  const conditionNewIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="12" width="24" height="16" rx="3" fill="#2563EB"/><path d="M11 12L14 7H26L29 12" stroke="#2563EB" stroke-width="1.5"/><circle cx="14" cy="28" r="3" fill="#1E3A8A"/><circle cx="26" cy="28" r="3" fill="#1E3A8A"/></svg>';
+  const conditionUsedIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="12" width="24" height="16" rx="3" fill="#64748B"/><path d="M11 12L14 7H26L29 12" stroke="#64748B" stroke-width="1.5"/><circle cx="14" cy="28" r="3" fill="#334155"/><circle cx="26" cy="28" r="3" fill="#334155"/></svg>';
+  const conditionCpoIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="12" width="24" height="16" rx="3" fill="#059669"/><path d="M11 12L14 7H26L29 12" stroke="#059669" stroke-width="1.5"/><circle cx="14" cy="28" r="3" fill="#065F46"/><circle cx="26" cy="28" r="3" fill="#065F46"/><path d="M17 20L19 22L23 18" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  const conditionSurpriseIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="2"/><text x="20" y="26" text-anchor="middle" fill="currentColor" font-size="18" font-weight="bold">?</text></svg>';
+  const guideMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 7H14M6 10H14M6 13H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  const carMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7L7 3H13L15 7" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="16" r="2" fill="currentColor"/><circle cx="14" cy="16" r="2" fill="currentColor"/></svg>';
+  const dollarMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 6V14M8 8.5C8 7.67 8.9 7 10 7C11.1 7 12 7.67 12 8.5C12 9.33 11.1 10 10 10C8.9 10 8 10.67 8 11.5C8 12.33 8.9 13 10 13C11.1 13 12 12.33 12 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  const evMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M11 3L6 11H10L9 17L14 9H10L11 3Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+  const glossaryMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 5H16M4 8H16M4 11H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="14" cy="13" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M16.5 15.5L18 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 
   interface WidgetProps {
     store?: string;
@@ -117,29 +102,27 @@
   }
 
   let browserToken = $state<string>(getOrCreateBrowserToken());
-  interface ComparisonWine {
-    id: string;
-    name: string;
-    brand?: string;
-    wine_type?: string;
-    varietal?: string;
-    region?: string;
-    vintage?: number;
-    body?: string;
-    sweetness?: string;
-    price: number;
-    tasting_notes?: string;
-    flavor_profile?: string[];
-    food_pairings?: string[];
+  interface ComparisonVehicle {
+    year?: number;
+    make?: string;
+    model?: string;
+    trim?: string;
+    condition?: string;
+    body_type?: string;
+    drive_type?: string;
+    fuel_type?: string;
+    price?: number;
+    mileage?: number;
+    description?: string;
     image_url?: string;
-    shop_link?: string;
+    source_url?: string;
   }
 
   interface Message {
     role: "user" | "assistant";
     content: string;
     recommendations?: Recommendation[];
-    comparison?: { wine1: ComparisonWine; wine2: ComparisonWine };
+    comparison?: { vehicle1: ComparisonVehicle; vehicle2: ComparisonVehicle };
     shimmer?: boolean;  // Add shimmer flag for loading messages
     id?: string;  // Unique identifier for Svelte keying
     analyticsMessageId?: string;
@@ -150,31 +133,33 @@
 
   interface Recommendation {
     id: string;
-    name: string;
+    year?: number;
+    make?: string;
+    model?: string;
+    trim?: string;
+    condition?: string;
+    body_type?: string;
+    drive_type?: string;
+    fuel_type?: string;
+    engine?: string;
+    mileage?: number;
     price: number;
+    msrp?: number;
     image?: string;
     image_url?: string;
-    shop_link?: string;
+    source_url?: string;
     description?: string;
-    wine_type?: string;
-    varietal?: string;
-    region?: string;
-    vintage?: number;
-    body?: string;
-    sweetness?: string;
-    tasting_notes?: string;
-    flavor_profile?: string[];
-    food_pairings?: string[];
-    occasions?: string[];
-    brand?: string;
-    alcohol_pct?: number;
+    key_features?: string[];
+    use_case_tags?: string[];
+    priority_tags?: string[];
+    dealer_name?: string;
     rankPosition?: number;
   }
 
   interface CatalogFacets {
-    wineTypes: string[];
-    varietalsByWineType: Record<string, string[]>;
-    styleTagsByWineType: Record<string, string[]>;
+    makes: string[];
+    bodyTypes: string[];
+    conditions: string[];
   }
 
   // Profile config from backend
@@ -188,25 +173,10 @@
     quickStartSuggestions: Array<{ label: string; prompt: string }>;
     catalogFacets: CatalogFacets | null;
     features: {
-      wineClub: boolean;
-      corporateGifting: boolean;
       dealerLocator: boolean;
       leadCapture: boolean;
       crossBrandComparison: boolean;
     };
-    wineClubConfig: {
-      name: string;
-      tiers: Array<{ name: string; bottles: number; frequency: string; priceRange: string }>;
-      benefits: string[];
-      joinUrl: string;
-      contactEmail: string;
-    } | null;
-    giftingConfig: {
-      contactEmail: string;
-      contactPhone: string;
-      minCorporateQuantity: number;
-      giftSets: Array<{ name: string; description: string; price: number }>;
-    } | null;
     brandContent: {
       shippingPolicy: string;
       returnPolicy: string;
@@ -225,47 +195,31 @@
     profileConfig?.features.leadCapture &&
     messages.some((message) => (message.recommendations?.length ?? 0) > 0)
   );
-  let showWineClubCard = $state(false);
-  let comparisonData = $state<{ wine1: ComparisonWine; wine2: ComparisonWine } | null>(null);
-  let showGiftingCard = $state(false);
+  let comparisonData = $state<{ vehicle1: ComparisonVehicle; vehicle2: ComparisonVehicle } | null>(null);
 
-  const CLUB_KEYWORDS = /wine club|membership|subscribe|join.*club|club.*member|sign.*up.*club/i;
   const COMPARE_PATTERN = /compare\s+(?:the\s+)?(.+?)\s+(?:and|with|vs\.?|versus)\s+(?:the\s+)?(.+?)(?:\s*[.?!]?\s*$)/i;
-  const GIFTING_KEYWORDS = /corporate gift|client gift|bulk.*order|gift.*(?:for|to)\s+(?:clients?|team|employees?|staff)|send.*wine.*to\s+\d+|gift\s+set/i;
 
-  function checkForClubInterest(text: string) {
-    if (profileConfig?.features.wineClub && profileConfig.wineClubConfig && CLUB_KEYWORDS.test(text)) {
-      showWineClubCard = true;
-      void sendAnalyticsEvent('club_interest_shown', { payload: { trigger: text.slice(0, 100) } });
-    }
-  }
-
-  function checkForGiftingIntent(text: string) {
-    if (profileConfig?.features.corporateGifting && profileConfig.giftingConfig && GIFTING_KEYWORDS.test(text)) {
-      showGiftingCard = true;
-      void sendAnalyticsEvent('gifting_intent_detected', { payload: { trigger: text.slice(0, 100) } });
-    }
-  }
+  function checkForGiftingIntent(_content: string) { }
 
   async function checkForComparison(text: string) {
     const match = text.match(COMPARE_PATTERN);
     if (!match) return;
 
-    const wine1Name = match[1].trim();
-    const wine2Name = match[2].trim();
+    const vehicle1Name = match[1].trim();
+    const vehicle2Name = match[2].trim();
 
     try {
       const res = await fetch(`${CHAT_BASE_URL}/compare`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wine1: wine1Name, wine2: wine2Name }),
+        body: JSON.stringify({ vehicle1: vehicle1Name, vehicle2: vehicle2Name }),
       });
       if (!res.ok) return;
       const data = await res.json();
       if (data.comparison) {
         comparisonData = data.comparison;
         void sendAnalyticsEvent('comparison_requested', {
-          payload: { wine1: wine1Name, wine2: wine2Name }
+          payload: { vehicle1: vehicle1Name, vehicle2: vehicle2Name }
         });
       }
     } catch {
@@ -416,9 +370,8 @@
   // CODEX Detection Constants
   const CODEX_PATTERNS = {
     RECOMMEND: [
-      "I completely understand what you're looking for",
-      "Let me check what we have that matches your preferences",
-      "I'm pulling up products that fit your criteria",
+      "Let me check what we have that matches your needs",
+      "I'm pulling up vehicles that fit your criteria",
       "Checking our inventory based on what you described"
     ],
     PRODUCT_LOOKUP: [
@@ -461,11 +414,11 @@
 
   // Sidebar menu items for education, disclosure, and feedback
   const guideMenuPanels = {
-    'guide-wine-basics': WINE_EDUCATION_PANELS['wine-basics'],
-    'guide-sparkling-guide': WINE_EDUCATION_PANELS['sparkling-guide'],
-    'guide-food-pairing': WINE_EDUCATION_PANELS['food-pairing'],
-    'guide-serving-tips': WINE_EDUCATION_PANELS['serving-tips'],
-    'guide-glossary': WINE_EDUCATION_PANELS['glossary']
+    'guide-new-vs-used': CAR_EDUCATION_PANELS['new-vs-used'],
+    'guide-body-type': CAR_EDUCATION_PANELS['body-type-guide'],
+    'guide-financing': CAR_EDUCATION_PANELS['financing-basics'],
+    'guide-ev-hybrid': CAR_EDUCATION_PANELS['ev-hybrid-guide'],
+    'guide-glossary': CAR_EDUCATION_PANELS['glossary']
   } as const;
 
   type GuideMenuPanelId = keyof typeof guideMenuPanels;
@@ -474,10 +427,10 @@
     { id: 'ai-disclosure', label: 'AI Disclosure', icon: 'about', iconType: 'svg' as const },
     { id: 'feedback', label: 'Send Feedback', icon: 'feedback', iconType: 'svg' as const },
     { id: 'menu-section-guides', label: 'Guides', type: 'section' as const },
-    { id: 'guide-wine-basics', label: 'Wine Basics', icon: wineBasicsMenuIcon, iconType: 'svg' as const },
-    { id: 'guide-sparkling-guide', label: 'Sparkling Guide', icon: sparklingGuideMenuIcon, iconType: 'svg' as const },
-    { id: 'guide-food-pairing', label: 'Food Pairing', icon: foodPairingMenuIcon, iconType: 'svg' as const },
-    { id: 'guide-serving-tips', label: 'Serving Tips', icon: servingTipsMenuIcon, iconType: 'svg' as const },
+    { id: 'guide-new-vs-used', label: 'New vs. Used vs. CPO', icon: guideMenuIcon, iconType: 'svg' as const },
+    { id: 'guide-body-type', label: 'Body Type Guide', icon: carMenuIcon, iconType: 'svg' as const },
+    { id: 'guide-financing', label: 'Financing Basics', icon: dollarMenuIcon, iconType: 'svg' as const },
+    { id: 'guide-ev-hybrid', label: 'EV & Hybrid Guide', icon: evMenuIcon, iconType: 'svg' as const },
     { id: 'guide-glossary', label: 'Glossary', icon: glossaryMenuIcon, iconType: 'svg' as const }
   ];
 
@@ -501,12 +454,12 @@
   let lastFocusedElement = $state<HTMLElement | null>(null);
   let a11yAnnouncement = $state('');
   const defaultQuickStarts: QuickStartRequest[] = [
-    { label: 'Big Red for Steak', prompt: 'big red with steak' },
-    { label: 'Crisp White for Seafood', prompt: 'crisp white for seafood' },
-    { label: 'Rosé for Charcuterie', prompt: 'rosé for charcuterie' },
-    { label: 'Celebration Bubbles', prompt: 'celebration bubbles' },
-    { label: 'Sweet Wine for Dessert', prompt: 'sweet wine for dessert' },
-    { label: 'Surprise Me', prompt: 'surprise me' }
+    { label: 'Family SUV under $40k', prompt: 'I need a family SUV under $40,000' },
+    { label: 'Reliable Daily Driver', prompt: 'looking for a reliable daily driver' },
+    { label: 'Truck for Work or Adventure', prompt: 'need a truck for work and outdoor adventures' },
+    { label: 'Best Fuel Economy', prompt: 'what has the best fuel economy' },
+    { label: 'Something Fun to Drive', prompt: 'something fun and sporty to drive' },
+    { label: 'Surprise Me', prompt: 'surprise me' },
   ];
   let popularRequests = $derived<QuickStartRequest[]>(
     profileConfig?.quickStartSuggestions ?? defaultQuickStarts
@@ -915,24 +868,29 @@
     return recommendations.map((rec, index) => ({
       id: rec.id,
       image: rec.image_url || rec.image || '',
-      title: rec.name || '',
+      title: [rec.year, rec.make, rec.model, rec.trim].filter(Boolean).join(' '),
       price: rec.price != null && !isNaN(rec.price) ? rec.price : 0,
-      originalPrice: undefined,
+      originalPrice: rec.msrp,
       rating: undefined,
       discount: undefined,
-      category: rec.wine_type,
-      shopLink: rec.shop_link,
-      brand: rec.brand,
-      varietal: rec.varietal,
-      region: rec.region,
-      vintage: rec.vintage,
-      body: rec.body,
-      sweetness: rec.sweetness,
+      category: rec.body_type,
+      shopLink: rec.source_url,
+      make: rec.make,
+      model: rec.model,
+      year: rec.year,
+      trim: rec.trim,
+      condition: rec.condition,
+      body_type: rec.body_type,
+      drive_type: rec.drive_type,
+      fuel_type: rec.fuel_type,
+      engine: rec.engine,
+      mileage: rec.mileage,
       description: rec.description,
-      tasting_notes: rec.tasting_notes,
-      flavor_profile: rec.flavor_profile,
-      food_pairings: rec.food_pairings,
-      rankPosition: rec.rankPosition ?? index + 1
+      key_features: rec.key_features,
+      use_case_tags: rec.use_case_tags,
+      priority_tags: rec.priority_tags,
+      dealer_name: rec.dealer_name,
+      rankPosition: index + 1
     }));
   }
 
@@ -993,621 +951,84 @@
   }
 
   // ============================================
-  // WINE GUIDED FLOW STEPS
+  // CAR GUIDED FLOW STEPS
   // ============================================
 
-  // Step 1: Wine Style
-  const wineStyleStep = {
-    id: 'wine_type',
-    title: 'What type of wine?',
-    subtitle: '(Select one)',
+  const conditionStep = {
+    id: 'condition',
+    title: 'What are you shopping for?',
     type: 'single-select' as const,
-    required: true,
     options: [
-      { id: 'red', label: 'Red', value: 'red', icon: wineRedIcon },
-      { id: 'white', label: 'White', value: 'white', icon: wineWhiteIcon },
-      { id: 'rose', label: 'Rosé', value: 'rose', icon: wineRoseIcon },
-      { id: 'sparkling', label: 'Sparkling', value: 'sparkling', icon: wineSparklingIcon },
-      { id: 'food-pairing', label: 'Food Pairing', value: 'food-pairing' }
+      { id: 'new', label: 'New', value: 'new', icon: conditionNewIcon },
+      { id: 'used', label: 'Used / Pre-Owned', value: 'used', icon: conditionUsedIcon },
+      { id: 'cpo', label: 'Certified Pre-Owned', value: 'cpo', icon: conditionCpoIcon },
+      { id: 'surprise', label: 'Surprise Me', value: null, icon: conditionSurpriseIcon }
     ]
   };
 
-  const surpriseRedGrapeOption = { id: 'surprise-grape', label: 'Surprise Me', value: null, icon: wineSurpriseIcon };
-  const surpriseWhiteGrapeOption = { id: 'surprise-white-grape', label: 'Surprise Me', value: null, icon: wineSurpriseIcon };
-
-  const baseRedGrapeOptions = [
-    { id: 'cabernet-sauvignon', label: 'Cabernet Sauvignon', value: 'cabernet-sauvignon' },
-    { id: 'merlot', label: 'Merlot', value: 'merlot' },
-    { id: 'pinot-noir', label: 'Pinot Noir', value: 'pinot-noir' },
-    { id: 'syrah', label: 'Syrah / Shiraz', value: 'syrah' },
-    { id: 'malbec', label: 'Malbec', value: 'malbec' },
-    { id: 'zinfandel', label: 'Zinfandel', value: 'zinfandel' },
-    { id: 'red-blend', label: 'Red Blend', value: 'red-blend' }
-  ];
-
-  const merchantRedGrapeOptions = [
-    { id: 'cabernet-franc', label: 'Cabernet Franc', value: 'cabernet-franc' },
-    { id: 'grenache', label: 'Grenache', value: 'grenache' },
-    { id: 'sangiovese', label: 'Sangiovese', value: 'sangiovese' },
-    { id: 'tempranillo', label: 'Tempranillo', value: 'tempranillo' },
-    { id: 'petite-sirah', label: 'Petite Sirah', value: 'petite-sirah' },
-    { id: 'nebbiolo', label: 'Nebbiolo', value: 'nebbiolo' }
-  ];
-
-  const baseWhiteGrapeOptions = [
-    { id: 'chardonnay', label: 'Chardonnay', value: 'chardonnay' },
-    { id: 'sauvignon-blanc', label: 'Sauvignon Blanc', value: 'sauvignon-blanc' },
-    { id: 'riesling', label: 'Riesling', value: 'riesling' },
-    { id: 'pinot-grigio', label: 'Pinot Grigio', value: 'pinot-grigio' },
-    { id: 'moscato', label: 'Moscato', value: 'moscato' },
-    { id: 'white-blend', label: 'White Blend', value: 'white-blend' }
-  ];
-
-  const merchantWhiteGrapeOptions = [
-    { id: 'chenin-blanc', label: 'Chenin Blanc', value: 'chenin-blanc' },
-    { id: 'viognier', label: 'Viognier', value: 'viognier' },
-    { id: 'albarino', label: 'Albarino', value: 'albarino' },
-    { id: 'semillon', label: 'Semillon', value: 'semillon' },
-    { id: 'gewurztraminer', label: 'Gewurztraminer', value: 'gewurztraminer' }
-  ];
-
-  // Step 2a: Red Grape (multi-select)
-  const redGrapeStep = {
-    id: 'red_varietal',
-    title: 'What grape do you prefer?',
-    subtitle: '(Select up to 2)',
-    type: 'multi-select' as const,
-    maxSelections: 2,
-    required: true,
-    options: [...baseRedGrapeOptions, surpriseRedGrapeOption]
-  };
-
-  // Step 2b: White Grape (multi-select)
-  const whiteGrapeStep = {
-    id: 'white_varietal',
-    title: 'What grape do you prefer?',
-    subtitle: '(Select up to 2)',
-    type: 'multi-select' as const,
-    maxSelections: 2,
-    required: true,
-    options: [...baseWhiteGrapeOptions, surpriseWhiteGrapeOption]
-  };
-
-  // Step 2c: Food Pairing (single-select)
-  const foodPairingStep = {
-    id: 'food_pairing',
-    title: 'What are you pairing with?',
-    subtitle: '(Select one)',
+  const useCaseStep = {
+    id: 'use_case',
+    title: 'What do you primarily need it for?',
     type: 'single-select' as const,
-    required: true,
     options: [
-      { id: 'steak', label: 'Steak & Red Meat', value: 'steak' },
-      { id: 'poultry', label: 'Poultry & Pork', value: 'poultry' },
-      { id: 'seafood', label: 'Seafood & Fish', value: 'seafood' },
-      { id: 'pasta', label: 'Pasta & Italian', value: 'pasta' },
-      { id: 'cheese', label: 'Cheese & Charcuterie', value: 'cheese' },
-      { id: 'salad', label: 'Salad & Vegetables', value: 'salad' },
-      { id: 'dessert-food', label: 'Chocolate & Desserts', value: 'chocolate' }
+      { id: 'commuter', label: 'Daily Commuting', value: 'commuter' },
+      { id: 'family', label: 'Family Hauling', value: 'family' },
+      { id: 'adventure', label: 'Weekend Adventures / Outdoors', value: 'adventure' },
+      { id: 'commercial', label: 'Work / Commercial Use', value: 'commercial' },
+      { id: 'performance', label: 'Performance Driving', value: 'performance' },
+      { id: 'eco', label: 'Best Fuel Economy / Eco', value: 'eco' }
     ]
   };
 
-  interface FoodPairingPresetValue {
-    wine_type?: 'red' | 'white' | 'rose' | 'sparkling' | 'dessert';
-    wine_type_label?: string;
-    varietal?: string;
-    region?: string;
-    style_tags?: string[];
-    body?: 'light' | 'medium' | 'full';
-    body_label?: string;
-    sweetness?: 'dry' | 'off-dry' | 'sweet';
-    sweetness_label?: string;
-    flavor_profile?: string[];
-    flavor_labels?: string[];
-  }
-
-  function createFoodPairingPresetOption(
-    id: string,
-    label: string,
-    preset: FoodPairingPresetValue
-  ) {
-    return {
-      id,
-      label,
-      value: preset
-    };
-  }
-
-  function createFoodPairingStyleStep(
-    id: string,
-    title: string,
-    options: Array<{ id: string; label: string; value: FoodPairingPresetValue }>
-  ) {
-    return {
-      id,
-      title,
-      subtitle: '(Select one)',
-      type: 'single-select' as const,
-      required: true,
-      options
-    };
-  }
-
-  const seafoodPairingStyleStep = createFoodPairingStyleStep('seafood_pairing_style', 'What kind of seafood?', [
-    createFoodPairingPresetOption('seafood-shellfish', 'Shellfish / Oysters', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      style_tags: ['brut'],
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'mineral'],
-      flavor_labels: ['Citrus & Mineral']
-    }),
-    createFoodPairingPresetOption('seafood-white-fish', 'Mild White Fish', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'green-apple'],
-      flavor_labels: ['Citrus & Apple']
-    }),
-    createFoodPairingPresetOption('seafood-lobster', 'Lobster / Cream Sauce', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['vanilla', 'peach'],
-      flavor_labels: ['Butter & Oak', 'Stone Fruit']
-    }),
-    createFoodPairingPresetOption('seafood-salmon', 'Salmon / Tuna', {
-      wine_type: 'red',
-      wine_type_label: 'Red',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['cherry', 'herbal'],
-      flavor_labels: ['Cherry', 'Herbal']
-    })
-  ]);
-
-  const poultryPairingStyleStep = createFoodPairingStyleStep('poultry_pairing_style', 'How is it prepared?', [
-    createFoodPairingPresetOption('poultry-light', 'Light / Herby', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'floral'],
-      flavor_labels: ['Citrus', 'Floral']
-    }),
-    createFoodPairingPresetOption('poultry-roasted', 'Roasted / Savory', {
-      wine_type: 'red',
-      wine_type_label: 'Red',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['cherry', 'herbal'],
-      flavor_labels: ['Cherry', 'Herbal']
-    }),
-    createFoodPairingPresetOption('poultry-creamy', 'Creamy / Rich', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['vanilla', 'peach'],
-      flavor_labels: ['Butter & Oak', 'Stone Fruit']
-    }),
-    createFoodPairingPresetOption('poultry-spicy', 'Sweet / Spicy Glaze', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'off-dry',
-      sweetness_label: 'Off-Dry',
-      flavor_profile: ['tropical', 'floral'],
-      flavor_labels: ['Tropical', 'Floral']
-    })
-  ]);
-
-  const pastaPairingStyleStep = createFoodPairingStyleStep('pasta_pairing_style', 'What kind of sauce?', [
-    createFoodPairingPresetOption('pasta-tomato', 'Tomato-Based', {
-      wine_type: 'red',
-      wine_type_label: 'Red',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['cherry', 'herbal'],
-      flavor_labels: ['Cherry', 'Herbal']
-    }),
-    createFoodPairingPresetOption('pasta-cream', 'Cream-Based', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['vanilla', 'citrus'],
-      flavor_labels: ['Butter & Oak', 'Citrus']
-    }),
-    createFoodPairingPresetOption('pasta-pesto', 'Pesto / Herbal', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'herbal'],
-      flavor_labels: ['Citrus', 'Herbal']
-    }),
-    createFoodPairingPresetOption('pasta-meaty', 'Meaty / Rich', {
-      wine_type: 'red',
-      wine_type_label: 'Red',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['berry', 'pepper'],
-      flavor_labels: ['Dark Fruit', 'Pepper & Spice']
-    })
-  ]);
-
-  const cheesePairingStyleStep = {
-    id: 'cheese_pairing_style',
-    title: 'What is on the board?',
-    subtitle: '(Select all that apply)',
-    type: 'multi-select' as const,
-    required: true,
+  const bodyTypeStep = {
+    id: 'body_type',
+    title: 'What body style?',
+    type: 'single-select' as const,
     options: [
-    createFoodPairingPresetOption('cheese-mixed', 'Mixed Board', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      style_tags: ['brut'],
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'green-apple'],
-      flavor_labels: ['Crisp & Versatile']
-    }),
-    createFoodPairingPresetOption('cheese-soft', 'Fresh / Soft Cheese', {
-      wine_type: 'white',
-      wine_type_label: 'White',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'floral'],
-      flavor_labels: ['Citrus', 'Floral']
-    }),
-    createFoodPairingPresetOption('cheese-aged', 'Aged / Salty Cheese', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      style_tags: ['brut'],
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'green-apple'],
-      flavor_labels: ['Citrus & Green Apple']
-    }),
-    createFoodPairingPresetOption('cheese-charcuterie', 'Charcuterie / Cured Meats', {
-      wine_type: 'red',
-      wine_type_label: 'Red',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['berry', 'pepper'],
-      flavor_labels: ['Dark Fruit', 'Pepper & Spice']
-    }),
-    createFoodPairingPresetOption('cheese-fruit', 'Fruit / Jam / Honey', {
-      wine_type: 'rose',
-      wine_type_label: 'Rosé',
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['berry', 'citrus'],
-      flavor_labels: ['Berry', 'Citrus']
-    })
+      { id: 'suv', label: 'SUV / Crossover', value: 'suv' },
+      { id: 'truck', label: 'Truck', value: 'truck' },
+      { id: 'sedan', label: 'Sedan', value: 'sedan' },
+      { id: 'hatchback', label: 'Hatchback / Wagon', value: 'hatchback' },
+      { id: 'minivan', label: 'Minivan', value: 'minivan' },
+      { id: 'coupe', label: 'Coupe / Convertible', value: 'coupe' }
     ]
   };
 
-  // Body (slider)
-  const bodyStep = {
-    id: 'body',
-    title: 'Body',
-    subtitle: 'How heavy should the wine feel?',
-    type: 'slider' as const,
-    required: true,
-    options: [
-      { id: 'light', label: 'Light', value: 'light', description: 'Crisp & delicate' },
-      { id: 'medium', label: 'Medium', value: 'medium', description: 'Balanced & smooth' },
-      { id: 'full', label: 'Full', value: 'full', description: 'Bold & rich' }
-    ]
-  };
-
-  // Dryness (slider — defaults to Dry, position 0)
-  const drynessStep = {
-    id: 'sweetness',
-    title: 'Dry / Sweet',
-    subtitle: 'How dry or sweet do you prefer?',
-    type: 'slider' as const,
-    required: true,
-    defaultPosition: 0,
-    options: [
-      { id: 'dry', label: 'Dry', value: 'dry', description: 'No residual sugar' },
-      { id: 'off-dry', label: 'Off-Dry', value: 'off-dry', description: 'Slightly sweet' },
-      { id: 'sweet', label: 'Sweet', value: 'sweet', description: 'Noticeable sweetness' }
-    ]
-  };
-
-  const sparklingMoscatoDrynessStep = {
-    ...drynessStep,
-    id: 'sparkling_moscato_sweetness',
-    options: drynessStep.options.filter((option) => option.value !== 'dry'),
-    defaultPosition: 0
-  };
-
-  const flavorStepBase = {
-    subtitle: '(Up to 2)',
+  const prioritiesStep = {
+    id: 'priority_tags',
+    title: 'What matters most to you?',
     type: 'multi-select' as const,
     maxSelections: 2,
-    gridColumns: 3,
-    customStyles: {
-      padding: '24px 10px',
-      fontSize: '13px'
-    },
-    required: true
+    options: [
+      { id: 'safety', label: 'Safety Ratings', value: 'safety' },
+      { id: 'fuel-economy', label: 'Fuel Economy / Range', value: 'fuel-economy' },
+      { id: 'cargo', label: 'Cargo / Passenger Space', value: 'cargo' },
+      { id: 'towing', label: 'Towing Capacity', value: 'towing' },
+      { id: 'tech', label: 'Tech & Connectivity', value: 'tech' },
+      { id: 'reliability', label: 'Reliability / Low Maintenance', value: 'reliability' },
+      { id: 'performance', label: 'Performance / Power', value: 'performance' },
+      { id: 'luxury', label: 'Luxury / Comfort', value: 'luxury' }
+    ]
   };
 
-  function createFlavorStep(
-    id: string,
-    title: string,
-    options: Array<{ id: string; label: string; value: string; icon?: string }>
-  ) {
-    return {
-      id,
-      title,
-      ...flavorStepBase,
-      options
-    };
-  }
-
-  const redFlavorStep = createFlavorStep('red_flavor_profile', 'Red Wine Flavors', [
-    { id: 'red-berry-cherry', label: 'Berry & Cherry', value: 'berry', icon: flavorBerryIcon },
-    { id: 'red-plum-blackberry', label: 'Plum & Blackberry', value: 'blackberry', icon: flavorBerryIcon },
-    { id: 'red-pepper-spice', label: 'Pepper & Spice', value: 'pepper', icon: flavorPepperIcon },
-    { id: 'red-chocolate-coffee', label: 'Chocolate & Coffee', value: 'chocolate', icon: flavorChocolateIcon },
-    { id: 'red-oak-vanilla', label: 'Oak & Vanilla', value: 'vanilla', icon: flavorVanillaIcon },
-    { id: 'red-earth-herb', label: 'Earth & Herbs', value: 'earthy', icon: flavorEarthyIcon }
-  ]);
-
-  const whiteFlavorStep = createFlavorStep('white_flavor_profile', 'White Wine Flavors', [
-    { id: 'white-citrus-apple', label: 'Citrus & Green Apple', value: 'citrus', icon: flavorCitrusIcon },
-    { id: 'white-stone-fruit', label: 'Stone Fruit', value: 'peach', icon: flavorTropicalIcon },
-    { id: 'white-tropical', label: 'Tropical Fruit', value: 'tropical', icon: flavorTropicalIcon },
-    { id: 'white-floral', label: 'Floral', value: 'floral', icon: flavorFloralIcon },
-    { id: 'white-mineral', label: 'Mineral & Crisp', value: 'mineral', icon: flavorEarthyIcon },
-    { id: 'white-butter-oak', label: 'Butter & Oak', value: 'vanilla', icon: flavorVanillaIcon }
-  ]);
-
-  const roseFlavorStep = createFlavorStep('rose_flavor_profile', 'Rosé Flavors', [
-    { id: 'rose-berry', label: 'Strawberry & Berry', value: 'berry', icon: flavorBerryIcon },
-    { id: 'rose-citrus-peach', label: 'Citrus & Peach', value: 'citrus', icon: flavorCitrusIcon },
-    { id: 'rose-floral', label: 'Floral', value: 'floral', icon: flavorFloralIcon },
-    { id: 'rose-herbal', label: 'Herbal & Savory', value: 'herbal', icon: flavorFloralIcon },
-    { id: 'rose-mineral', label: 'Mineral & Crisp', value: 'mineral', icon: flavorEarthyIcon },
-    { id: 'rose-spice', label: 'Pepper & Spice', value: 'pepper', icon: flavorPepperIcon }
-  ]);
-
-  const sparklingStyleStep = createFoodPairingStyleStep('sparkling_style', 'Sparkling Style', [
-    createFoodPairingPresetOption('sparkling-brut', 'Brut', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      style_tags: ['brut'],
-      sweetness: 'dry',
-      sweetness_label: 'Dry',
-      flavor_profile: ['citrus', 'green-apple'],
-      flavor_labels: ['Citrus / Apple']
-    }),
-    createFoodPairingPresetOption('sparkling-champagne', 'Champagne', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      varietal: 'champagne-blend',
-      region: 'champagne',
-      style_tags: ['champagne'],
-      flavor_profile: ['citrus', 'green-apple'],
-      flavor_labels: ['Citrus / Mineral']
-    }),
-    createFoodPairingPresetOption('sparkling-prosecco', 'Prosecco', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      varietal: 'prosecco-blend',
-      style_tags: ['prosecco'],
-      flavor_profile: ['green-apple', 'tropical'],
-      flavor_labels: ['Apple / Pear', 'Soft Fruit & Floral']
-    }),
-    createFoodPairingPresetOption('sparkling-cava', 'Cava', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      style_tags: ['cava'],
-      flavor_profile: ['citrus', 'mineral'],
-      flavor_labels: ['Citrus / Mineral']
-    }),
-    createFoodPairingPresetOption('sparkling-cremant', 'Cremant', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      style_tags: ['cremant'],
-      flavor_profile: ['green-apple', 'mineral'],
-      flavor_labels: ['Apple / Pear', 'Citrus / Mineral']
-    }),
-    createFoodPairingPresetOption('sparkling-blanc-de-blancs', 'Blanc de Blancs', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      varietal: 'chardonnay',
-      style_tags: ['blanc-de-blancs'],
-      flavor_profile: ['citrus', 'green-apple'],
-      flavor_labels: ['Citrus / Mineral']
-    }),
-    createFoodPairingPresetOption('sparkling-rose', 'Rosé', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      style_tags: ['sparkling-rose'],
-      flavor_profile: ['berry', 'floral'],
-      flavor_labels: ['Berry / Rosé']
-    }),
-    createFoodPairingPresetOption('sparkling-moscato', 'Moscato', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      varietal: 'moscato',
-      style_tags: ['moscato'],
-      flavor_profile: ['tropical', 'floral'],
-      flavor_labels: ['Soft Fruit & Floral']
-    }),
-    createFoodPairingPresetOption('sparkling-surprise', 'Surprise Me', {
-      wine_type: 'sparkling',
-      wine_type_label: 'Sparkling',
-      flavor_profile: [],
-      flavor_labels: []
-    })
-  ]);
-
-  const sparklingFlavorStep = createFlavorStep('sparkling_flavor_profile', 'Sparkling Flavors', [
-    { id: 'sparkling-citrus-mineral', label: 'Citrus / Mineral', value: 'citrus', icon: flavorCitrusIcon },
-    { id: 'sparkling-apple-pear', label: 'Apple / Pear', value: 'green-apple', icon: flavorCitrusIcon },
-    { id: 'sparkling-soft-fruity', label: 'Soft Fruit & Floral', value: 'peach', icon: flavorTropicalIcon },
-    { id: 'sparkling-brioche-toast', label: 'Brioche / Toast', value: 'vanilla', icon: flavorVanillaIcon },
-    { id: 'sparkling-berry-rose', label: 'Berry / Rosé', value: 'berry', icon: flavorBerryIcon },
-    { id: 'sparkling-sweet-fruity', label: 'Sweet / Fruity', value: 'tropical', icon: flavorTropicalIcon }
-  ]);
-
-  function getFoodPairingStyleStep(foodPairing: string | null) {
-    switch (foodPairing) {
-      case 'seafood':
-        return seafoodPairingStyleStep;
-      case 'poultry':
-        return poultryPairingStyleStep;
-      case 'pasta':
-        return pastaPairingStyleStep;
-      case 'cheese':
-        return cheesePairingStyleStep;
-      default:
-        return null;
-    }
-  }
-
-  // Max Price
   const priceStep = {
     id: 'price',
-    title: 'Max Price',
-    subtitle: '',
+    title: 'What\'s your budget?',
     type: 'price-selector' as const,
-    required: true,
-    options: []
+    options: [
+      { id: 'under-15k', label: 'Under $15k', value: 15000, isMax: true },
+      { id: '15k-25k', label: '$15k – $25k', value: 25000, isMax: true, minValue: 15000 },
+      { id: '25k-40k', label: '$25k – $40k', value: 40000, isMax: true, minValue: 25000 },
+      { id: '40k-60k', label: '$40k – $60k', value: 60000, isMax: true, minValue: 40000 },
+      { id: '60k-plus', label: '$60k+', value: 60000, isMin: true },
+      { id: 'flexible', label: 'Flexible / Show Me All', value: null }
+    ]
   };
 
-  function withFilteredOptions<T extends { options: Array<any> }>(step: T, options: T['options']): T {
-    return options.length > 0 ? { ...step, options } : step;
-  }
-
-  const guidedWineStyleStep = $derived.by(() => {
-    const availableWineTypes = new Set(profileConfig?.catalogFacets?.wineTypes ?? []);
-    if (availableWineTypes.size === 0) return wineStyleStep;
-
-    return withFilteredOptions(
-      wineStyleStep,
-      wineStyleStep.options.filter((option) => option.value === 'food-pairing' || availableWineTypes.has(option.value))
-    );
-  });
-
-  const guidedRedGrapeStep = $derived.by(() => {
-    const stepOptions = profileConfig?.guidedFlowType === 'merchant'
-      ? [...baseRedGrapeOptions, ...merchantRedGrapeOptions, surpriseRedGrapeOption]
-      : redGrapeStep.options;
-    const candidateStep = { ...redGrapeStep, options: stepOptions };
-    const availableVarietals = new Set(profileConfig?.catalogFacets?.varietalsByWineType?.red ?? []);
-    if (availableVarietals.size === 0) return candidateStep;
-
-    return withFilteredOptions(
-      candidateStep,
-      stepOptions.filter((option) => option.value === null || availableVarietals.has(option.value))
-    );
-  });
-
-  const guidedWhiteGrapeStep = $derived.by(() => {
-    const stepOptions = profileConfig?.guidedFlowType === 'merchant'
-      ? [...baseWhiteGrapeOptions, ...merchantWhiteGrapeOptions, surpriseWhiteGrapeOption]
-      : whiteGrapeStep.options;
-    const candidateStep = { ...whiteGrapeStep, options: stepOptions };
-    const availableVarietals = new Set(profileConfig?.catalogFacets?.varietalsByWineType?.white ?? []);
-    if (availableVarietals.size === 0) return candidateStep;
-
-    return withFilteredOptions(
-      candidateStep,
-      stepOptions.filter((option) => option.value === null || availableVarietals.has(option.value))
-    );
-  });
-
-  const guidedSparklingStyleStep = $derived.by(() => {
-    const availableStyleTags = new Set(profileConfig?.catalogFacets?.styleTagsByWineType?.sparkling ?? []);
-    const availableVarietals = new Set(profileConfig?.catalogFacets?.varietalsByWineType?.sparkling ?? []);
-
-    if (availableStyleTags.size === 0 && availableVarietals.size === 0) {
-      return sparklingStyleStep;
-    }
-
-    return withFilteredOptions(
-      sparklingStyleStep,
-      sparklingStyleStep.options.filter((option) => {
-        if (option.label === 'Surprise Me') return true;
-        if (!option.value || typeof option.value !== 'object') return true;
-
-        const preset = option.value as FoodPairingPresetValue;
-        const hasStyleTagMatch = preset.style_tags?.some((styleTag) => availableStyleTags.has(styleTag)) ?? false;
-        const hasVarietalMatch = preset.varietal ? availableVarietals.has(preset.varietal) : false;
-
-        return hasStyleTagMatch || hasVarietalMatch;
-      })
-    );
-  });
-
-  // Track guided flow selections for dynamic step branching
-  let guidedFlowWineType = $state<string | null>(null);
-  let guidedFlowFoodPairing = $state<string | null>(null);
-  let guidedFlowSparklingVarietal = $state<string | null>(null);
-
-  // Dynamic steps based on wine_type selection
-  let allGuidedFlowSteps = $derived.by(() => {
-    const steps = [guidedWineStyleStep];
-
-    if (!guidedFlowWineType) {
-      return steps;
-    }
-
-    if (guidedFlowWineType === 'red') {
-      steps.push(guidedRedGrapeStep, bodyStep, drynessStep, redFlavorStep, priceStep);
-      return steps;
-    }
-
-    if (guidedFlowWineType === 'white') {
-      steps.push(guidedWhiteGrapeStep, bodyStep, drynessStep, whiteFlavorStep, priceStep);
-      return steps;
-    }
-
-    if (guidedFlowWineType === 'rose') {
-      steps.push(drynessStep, roseFlavorStep, priceStep);
-      return steps;
-    }
-
-    if (guidedFlowWineType === 'sparkling') {
-      const sparklingSweetnessStep =
-        guidedFlowSparklingVarietal === 'moscato' ? sparklingMoscatoDrynessStep : drynessStep;
-
-      steps.push(guidedSparklingStyleStep, sparklingSweetnessStep, sparklingFlavorStep, priceStep);
-      return steps;
-    }
-
-    if (guidedFlowWineType === 'food-pairing') {
-      steps.push(foodPairingStep);
-
-      const foodPairingStyleStep = getFoodPairingStyleStep(guidedFlowFoodPairing);
-      if (foodPairingStyleStep) {
-        steps.push(foodPairingStyleStep);
-      }
-
-      steps.push(priceStep);
-      return steps;
-    }
-
-    return steps;
-  });
+  const allGuidedFlowSteps = [conditionStep, useCaseStep, bodyTypeStep, prioritiesStep, priceStep];
 
   function handleModeToggle() {
-    if (mode === 'chat') {
-      guidedFlowWineType = null;
-      guidedFlowFoodPairing = null;
-      mode = 'guided-flow';
-    } else {
-      mode = 'chat';
-    }
+    mode = mode === 'chat' ? 'guided-flow' : 'chat';
   }
 
   function buildTranscriptMessages() {
@@ -1617,13 +1038,13 @@
         role: message.role,
         content: message.content.trim(),
         recommendations: (message.recommendations ?? []).slice(0, 6).map((recommendation) => ({
-          name: recommendation.name,
-          brand: recommendation.brand,
+          make: recommendation.make,
+          model: recommendation.model,
+          year: recommendation.year,
+          body_type: recommendation.body_type,
+          condition: recommendation.condition,
           price: recommendation.price,
-          shop_link: recommendation.shop_link,
-          wine_type: recommendation.wine_type,
-          varietal: recommendation.varietal,
-          region: recommendation.region
+          source_url: recommendation.source_url
         }))
       }));
   }
@@ -1823,29 +1244,8 @@
     mode = 'chat';
   }
 
-  function handleSelectionChange(selections: Record<string, any>) {
-    // Track wine_type for dynamic step branching
-    if ('wine_type' in selections) {
-      guidedFlowWineType = selections['wine_type'];
-      if (selections['wine_type'] !== 'food-pairing') {
-        guidedFlowFoodPairing = null;
-      }
-      if (selections['wine_type'] !== 'sparkling') {
-        guidedFlowSparklingVarietal = null;
-      }
-    }
-
-    if ('food_pairing' in selections) {
-      guidedFlowFoodPairing = selections['food_pairing'];
-    }
-
-    if ('sparkling_style' in selections) {
-      const sparklingStyle = selections['sparkling_style'];
-      guidedFlowSparklingVarietal =
-        sparklingStyle && typeof sparklingStyle === 'object' && 'varietal' in sparklingStyle
-          ? sparklingStyle.varietal ?? null
-          : null;
-    }
+  function handleSelectionChange(_selections: Record<string, any>) {
+    // Car guided flow is linear — no dynamic step branching needed
   }
 
   const guidedFlowConfig: GuidedFlowConfig = $derived({
@@ -1945,7 +1345,7 @@
     payload: { messages: Message[] },
     analyticsContext: AnalyticsContextPayload
   ) {
-    if (debug) console.log('[Product Context] Streaming with product:', product?.name);
+    if (debug) console.log('[Product Context] Streaming with product:', [product?.year, product?.make, product?.model].filter(Boolean).join(' '));
 
     let buffer = "";
     let botMessageContent = "";
@@ -1953,11 +1353,11 @@
 
     try {
       // Validate product has required fields
-      if (product && (!product.name || product.name.trim() === '')) {
-        console.error('[Product Context] Product missing name:', product);
+      if (product && (!product.make && !product.model)) {
+        console.error('[Product Context] Product missing make/model:', product);
         messages = [...messages, {
           role: 'assistant',
-          content: 'I found a product but the data seems incomplete. Please try again.'
+          content: 'I found a vehicle but the data seems incomplete. Please try again.'
         }];
         return;
       }
@@ -1981,8 +1381,9 @@
           hasBody: !!resp.body,
           responseText: errorText
         });
-        const errorMessage = product
-          ? `I'm having trouble loading ${product.name}. Please try again.`
+        const productLabel = product ? [product.year, product.make, product.model].filter(Boolean).join(' ') || 'this vehicle' : null;
+        const errorMessage = productLabel
+          ? `I'm having trouble loading ${productLabel}. Please try again.`
           : "I'm having trouble getting that information. Please try again.";
         messages = [...messages, {
           role: "assistant",
@@ -2064,22 +1465,26 @@
 
         const productRecommendation: Recommendation = {
           id: product.id || '',
-          name: product.name || '',
+          year: product.year,
+          make: product.make || (product as any).brand || '',
+          model: product.model || '',
+          trim: product.trim,
+          condition: product.condition,
+          body_type: product.body_type || (product as any).category,
+          drive_type: product.drive_type,
+          fuel_type: product.fuel_type,
+          engine: product.engine,
+          mileage: product.mileage,
           price: product.price || 0,
-          image: product.image_url || product.image || '',
-          image_url: product.image_url || product.image || '',
-          shop_link: product.shop_link || '',
+          msrp: product.msrp,
+          image: product.image_url || (product as any).image || '',
+          image_url: product.image_url || (product as any).image || '',
+          source_url: (product as any).shop_link || product.source_url || '',
           description: product.description || '',
-          wine_type: product.wine_type || '',
-          varietal: product.varietal || '',
-          region: product.region || '',
-          vintage: product.vintage,
-          body: product.body || '',
-          sweetness: product.sweetness || '',
-          brand: product.brand || '',
-          tasting_notes: product.tasting_notes || '',
-          flavor_profile: product.flavor_profile,
-          food_pairings: product.food_pairings,
+          key_features: product.key_features,
+          use_case_tags: product.use_case_tags,
+          priority_tags: product.priority_tags,
+          dealer_name: product.dealer_name,
           rankPosition: 1
         };
 
@@ -2099,8 +1504,9 @@
       }
     } catch (err) {
       console.error("[Product Context] Stream failed:", err);
-      const errorMessage = product && err instanceof Error
-        ? `I had trouble loading ${product.name}. ${err.message}`
+      const productLabel2 = product ? [product.year, product.make, product.model].filter(Boolean).join(' ') || 'this vehicle' : null;
+      const errorMessage = productLabel2 && err instanceof Error
+        ? `I had trouble loading ${productLabel2}. ${err.message}`
         : "I'm having trouble getting that information. Please try again.";
       messages = [...messages, {
         role: "assistant",
@@ -2256,8 +1662,7 @@
     const userMsg = message || input.trim();
     if (!userMsg || loading) return;
 
-    // Check for club interest, gifting intent, and comparison requests
-    checkForClubInterest(userMsg);
+    // Check for gifting intent and comparison requests
     checkForGiftingIntent(userMsg);
     checkForComparison(userMsg);
 
@@ -2590,7 +1995,7 @@
   menuPosition="left"
   menuMode="sidebar"
   onMenuItemClick={handleMenuItemClick}
-  title="Wine Sommelier"
+  title="Car Assistant"
   themeBackgroundColor="#F4C37D"
   iconSrc={chatIcon}
   launcherIconSrc={launcherIcon}
@@ -2616,7 +2021,7 @@
   showInput={activePanel === null}
   showScrollButton={activePanel === null}
   panelOpen={activePanel !== null}
-  ariaMessageLogLabel="Wine sommelier chat messages"
+  ariaMessageLogLabel="Car assistant chat messages"
   announceStreamingMode="final-only"
   announcementText={a11yAnnouncement}
 >
@@ -2648,7 +2053,7 @@
             variant={msg.role}
             messageText={msg.content}
             products={msg.recommendations ? convertToProducts(msg.recommendations) : undefined}
-            recommendationTitle={msg.role === 'assistant' && msg.recommendations && msg.recommendations.length > 0 ? "Sommelier recommendations" : undefined}
+            recommendationTitle={msg.role === 'assistant' && msg.recommendations && msg.recommendations.length > 0 ? "Vehicle recommendations" : undefined}
             recommendationLayout="compact-list"
             productsInBubble={true}
             showHoverActions={false}
@@ -2661,32 +2066,28 @@
 
       {#if comparisonData}
         <div style="padding: 0 12px;">
-          <WineComparisonCard
-            wine1={comparisonData.wine1}
-            wine2={comparisonData.wine2}
-          />
-        </div>
-      {/if}
-
-      {#if showGiftingCard && profileConfig?.giftingConfig}
-        <div style="padding: 0 12px;">
-          <CorporateGiftingCard
-            giftSets={profileConfig.giftingConfig.giftSets}
-            contactEmail={profileConfig.giftingConfig.contactEmail}
-            contactPhone={profileConfig.giftingConfig.contactPhone}
-          />
-        </div>
-      {/if}
-
-      {#if showWineClubCard && profileConfig?.wineClubConfig}
-        <div style="padding: 0 12px;">
-          <WineClubCard
-            clubName={profileConfig.wineClubConfig.name}
-            tiers={profileConfig.wineClubConfig.tiers}
-            benefits={profileConfig.wineClubConfig.benefits}
-            joinUrl={profileConfig.wineClubConfig.joinUrl}
-            contactEmail={profileConfig.wineClubConfig.contactEmail}
-          />
+          <div class="vehicle-comparison">
+            {#each [comparisonData.vehicle1, comparisonData.vehicle2] as v}
+              <div class="vehicle-comparison__card">
+                {#if v.image_url}
+                  <img src={v.image_url} alt="{v.year} {v.make} {v.model}" class="vehicle-comparison__image" />
+                {/if}
+                <div class="vehicle-comparison__info">
+                  <div class="vehicle-comparison__title">{[v.year, v.make, v.model, v.trim].filter(Boolean).join(' ')}</div>
+                  <div class="vehicle-comparison__price">${v.price?.toLocaleString()}</div>
+                  <div class="vehicle-comparison__badges">
+                    {#if v.condition}<span class="vehicle-comparison__badge">{v.condition}</span>{/if}
+                    {#if v.body_type}<span class="vehicle-comparison__badge">{v.body_type}</span>{/if}
+                    {#if v.drive_type}<span class="vehicle-comparison__badge">{v.drive_type.toUpperCase()}</span>{/if}
+                  </div>
+                  {#if v.mileage}<div class="vehicle-comparison__meta">{v.mileage.toLocaleString()} mi</div>{/if}
+                  {#if v.source_url}
+                    <a href={v.source_url} target="_blank" rel="noopener noreferrer" class="vehicle-comparison__link">View Details</a>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
         </div>
       {/if}
 
@@ -2720,7 +2121,7 @@
 
         {#if activeGuidePanel}
           <div class="widget-panel__title-row">
-            <h3 id={`widget-panel-title-${activeGuidePanel.id}`}>{activeGuidePanel.title}</h3>
+            <h3 id={`widget-panel-title-${activePanel}`}>{activeGuidePanel.title}</h3>
           </div>
           <EducationPanel panel={activeGuidePanel} />
         {:else if activePanel === 'ai-disclosure'}
@@ -2728,11 +2129,11 @@
             <h3 id="widget-panel-title-ai-disclosure">AI Disclosure</h3>
             <button type="button" class="widget-panel__external-link" onclick={() => openExternalPanelPage('ai-disclosure')}>Full Page</button>
           </div>
-          <p>This assistant helps guide wine discovery and education using the catalog data and business context available in this experience.</p>
+          <p>This assistant helps guide vehicle discovery and purchasing decisions using inventory data and business context available in this experience.</p>
           <ul>
-            <li>Recommendations are based on available catalog data and configured business context.</li>
-            <li>Responses are informational and should not be treated as professional medical or legal advice.</li>
-            <li>Inventory, vintages, pricing, and availability may change.</li>
+            <li>Recommendations are based on available inventory data and configured business context.</li>
+            <li>Responses are informational and should not be treated as professional financial or legal advice.</li>
+            <li>Inventory, pricing, and availability may change — verify with the dealership.</li>
           </ul>
           <p class="widget-panel__note">Please verify time-sensitive details before purchase.</p>
         {:else if activePanel === 'feedback'}
@@ -3062,5 +2463,70 @@
       transition: none !important;
       scroll-behavior: auto !important;
     }
+  }
+
+  .vehicle-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .vehicle-comparison__card {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .vehicle-comparison__image {
+    width: 100%;
+    height: 90px;
+    object-fit: cover;
+    background: #f3f4f6;
+  }
+  .vehicle-comparison__info {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .vehicle-comparison__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.3;
+  }
+  .vehicle-comparison__price {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--widget-theme-color, #3b82f6);
+  }
+  .vehicle-comparison__badges {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .vehicle-comparison__badge {
+    font-size: 9px;
+    font-weight: 500;
+    color: #374151;
+    background: #f3f4f6;
+    border-radius: 3px;
+    padding: 2px 5px;
+    text-transform: capitalize;
+  }
+  .vehicle-comparison__meta {
+    font-size: 11px;
+    color: #6b7280;
+  }
+  .vehicle-comparison__link {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--widget-theme-color, #3b82f6);
+    text-decoration: none;
+    margin-top: 2px;
+  }
+  .vehicle-comparison__link:hover {
+    text-decoration: underline;
   }
 </style>

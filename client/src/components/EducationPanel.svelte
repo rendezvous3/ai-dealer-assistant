@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { EducationPanelContent } from '../wine-education';
+  import type { CarEducationPanel } from '../car-education';
 
   interface EducationPanelProps {
-    panel: EducationPanelContent;
+    panel: CarEducationPanel;
   }
 
   let { panel }: EducationPanelProps = $props();

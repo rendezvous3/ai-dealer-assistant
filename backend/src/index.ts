@@ -18,18 +18,18 @@ import {
 } from "./types-and-constants";
 import {
   formatConversationHistory,
-  validateWineFilters,
+  validateVehicleFilters,
   parseRobustJSON,
   buildCompactRerankCandidates,
 } from "./utils";
-import { getWineSchemaForPrompt } from './wine-schema';
+import { getVehicleSchemaForPrompt } from './vehicle-schema';
 import {
   getCatalogFacets,
-  lookupWineByName,
-  searchWinesWithFallback,
+  lookupVehicleByName,
+  searchVehiclesWithFallback,
   surpriseMe
-} from './wine-search';
-import type { WineFilters, WineResult } from './wine-search';
+} from './vehicle-search';
+import type { VehicleFilters, VehicleResult } from './vehicle-search';
 import { getProfile } from './profiles';
 import {
   isAnalyticsEnabled,
@@ -55,7 +55,7 @@ interface Bindings {
   OPENAI_API_KEY?: string;
   GROK_API_KEY?: string;
   RESEND_API_KEY: string;
-  WINE_DB: D1Database;
+  VEHICLES_DB: D1Database;
   ANALYTICS_DB?: D1Database;
   PROFILE_TYPE?: string;
   ENVIRONMENT?: string;
@@ -137,14 +137,14 @@ const app = new Hono<{ Bindings: Bindings }>();
 // FEEDBACK ROUTE
 // ============================================
 
-const FEEDBACK_FROM = "Wine Shop Feedback <noreply@xtscale.com>";
+const FEEDBACK_FROM = "Dealer Feedback <noreply@xtscale.com>";
 const FEEDBACK_TO = "info@xtscale.com";
 const FEEDBACK_MAX_MESSAGE_LEN = 4000;
 const FEEDBACK_MAX_FILE_SIZE = 5 * 1024 * 1024;
 const FEEDBACK_RATE_WINDOW_MS = 10 * 60 * 1000;
 const FEEDBACK_RATE_MAX = 5;
 const ALLOWED_SCREENSHOT_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
-const TRANSCRIPT_FROM = "Wine Concierge <noreply@xtscale.com>";
+const TRANSCRIPT_FROM = "Vehicle Advisor <noreply@xtscale.com>";
 const TRANSCRIPT_RATE_WINDOW_MS = 10 * 60 * 1000;
 const TRANSCRIPT_RATE_MAX = 5;
 const TRANSCRIPT_MAX_MESSAGES = 40;
@@ -159,9 +159,10 @@ interface TranscriptRecommendation {
   brand?: string;
   price?: number | null;
   shop_link?: string | null;
-  wine_type?: string | null;
-  varietal?: string | null;
-  region?: string | null;
+  body_type?: string | null;
+  make?: string | null;
+  model?: string | null;
+  condition?: string | null;
 }
 
 interface TranscriptMessageEntry {
@@ -291,9 +292,10 @@ function normalizeTranscriptMessages(rawMessages: unknown): TranscriptMessageEnt
                 brand: safeTranscriptScalar(rawRecommendation.brand) ?? undefined,
                 price: safeTranscriptPrice(rawRecommendation.price),
                 shop_link: safeTranscriptScalar(rawRecommendation.shop_link),
-                wine_type: safeTranscriptScalar(rawRecommendation.wine_type),
-                varietal: safeTranscriptScalar(rawRecommendation.varietal),
-                region: safeTranscriptScalar(rawRecommendation.region),
+                body_type: safeTranscriptScalar(rawRecommendation.body_type),
+                make: safeTranscriptScalar(rawRecommendation.make),
+                model: safeTranscriptScalar(rawRecommendation.model),
+                condition: safeTranscriptScalar(rawRecommendation.condition),
               };
             })
             .filter((recommendation) => recommendation.name || recommendation.shop_link || recommendation.price != null)
@@ -334,10 +336,10 @@ function buildTranscriptEmail(
 
       for (const recommendation of message.recommendations) {
         const detailParts = [
-          recommendation.brand,
-          recommendation.wine_type,
-          recommendation.varietal,
-          recommendation.region
+          recommendation.make,
+          recommendation.body_type,
+          recommendation.model,
+          recommendation.condition
         ].filter(Boolean);
 
         lines.push(`- ${recommendation.name ?? "Recommended bottle"}${detailParts.length > 0 ? ` (${detailParts.join(" • ")})` : ""}`);
@@ -356,10 +358,10 @@ function buildTranscriptEmail(
     const productsHtml = message.recommendations.length > 0
       ? `<div style="margin-top:12px;"><div style="font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">Recommendations</div><ul style="margin:0;padding-left:18px;">${message.recommendations.map((recommendation) => {
           const detailParts = [
-            recommendation.brand,
-            recommendation.wine_type,
-            recommendation.varietal,
-            recommendation.region
+            recommendation.make,
+            recommendation.body_type,
+            recommendation.model,
+            recommendation.condition
           ].filter(Boolean);
 
           return `<li style="margin-bottom:10px;"><div style="font-weight:600;color:#111827;">${escapeHtml(recommendation.name ?? "Recommended bottle")}</div><div style="color:#6b7280;font-size:13px;">${escapeHtml(detailParts.join(" • ")) || "&nbsp;"}</div><div style="color:#111827;font-size:13px;">${escapeHtml(formatTranscriptPrice(recommendation.price))}</div>${recommendation.shop_link ? `<div style="font-size:13px;"><a href="${escapeHtml(recommendation.shop_link)}" style="color:#1d4ed8;">View bottle</a></div>` : ""}</li>`;
@@ -427,7 +429,7 @@ app.options('/chat', () => {
 
 app.get('/', (c) => {
   const profile = getProfile(c.env.PROFILE_TYPE);
-  return c.text(`${profile.storeName} Wine Chat API`);
+  return c.text(`${profile.storeName} Vehicle Chat API`);
 });
 
 // ============================================
@@ -440,9 +442,9 @@ app.get('/chat/config', async (c) => {
 
   try {
     const facetFilters = !profile.allowCrossBrand && profile.brandName
-      ? { brand: profile.brandName }
+      ? { make: profile.brandName }
       : {};
-    catalogFacets = await getCatalogFacets(c.env.WINE_DB, facetFilters);
+    catalogFacets = await getCatalogFacets(c.env.VEHICLES_DB, facetFilters);
   } catch (error) {
     console.error('[Config] Failed to build catalog facets:', error);
   }
@@ -457,8 +459,6 @@ app.get('/chat/config', async (c) => {
     quickStartSuggestions: profile.quickStartSuggestions,
     features: profile.features,
     catalogFacets,
-    wineClubConfig: profile.wineClubConfig ?? null,
-    giftingConfig: profile.giftingConfig ?? null,
     brandContent: profile.brandContent ? {
       shippingPolicy: profile.brandContent.shippingPolicy,
       returnPolicy: profile.brandContent.returnPolicy,
@@ -723,43 +723,43 @@ app.post("/feedback", async (c) => {
 });
 
 // ============================================
-// WINE COMPARISON
+// VEHICLE COMPARISON
 // ============================================
 
 app.post("/chat/compare", async (c) => {
   try {
     const body = await c.req.json();
-    const { wine1, wine2 } = body;
+    const { vehicle1, vehicle2 } = body;
 
-    if (!wine1 || !wine2) {
-      return c.json({ error: 'Two wine names are required' }, 400);
+    if (!vehicle1 || !vehicle2) {
+      return c.json({ error: 'Two vehicle names are required' }, 400);
     }
 
     const [results1, results2] = await Promise.all([
-      lookupWineByName(c.env.WINE_DB, wine1, 1),
-      lookupWineByName(c.env.WINE_DB, wine2, 1),
+      lookupVehicleByName(c.env.VEHICLES_DB, vehicle1, 1),
+      lookupVehicleByName(c.env.VEHICLES_DB, vehicle2, 1),
     ]);
 
     if (results1.length === 0 || results2.length === 0) {
       return c.json({
         error: 'comparison_incomplete',
         found: {
-          wine1: results1.length > 0 ? results1[0] : null,
-          wine2: results2.length > 0 ? results2[0] : null,
+          vehicle1: results1.length > 0 ? results1[0] : null,
+          vehicle2: results2.length > 0 ? results2[0] : null,
         },
-        message: `Could not find ${results1.length === 0 ? wine1 : wine2} in our catalog.`,
+        message: `Could not find ${results1.length === 0 ? vehicle1 : vehicle2} in our catalog.`,
       });
     }
 
     return c.json({
       comparison: {
-        wine1: results1[0],
-        wine2: results2[0],
+        vehicle1: results1[0],
+        vehicle2: results2[0],
       },
     });
   } catch (error: any) {
     console.error('[Compare] Error:', error.message);
-    return c.json({ error: 'Failed to compare wines' }, 500);
+    return c.json({ error: 'Failed to compare vehicles' }, 500);
   }
 });
 
@@ -783,10 +783,9 @@ app.post("/chat/intent", async (c) => {
 
   // CODEX cue detection — preserved from original
   const RECOMMEND_CUES = [
-    'I completely understand what you\'re looking for',
-    'Let me check what we have that matches your preferences',
-    'I\'m pulling up wines that fit your criteria',
-    'Checking our selection based on what you described'
+    'Let me check what we have that matches your needs',
+    'I\'m pulling up vehicles that fit your criteria',
+    'Checking our inventory based on what you described'
   ];
 
   const PRODUCT_CUES = [
@@ -843,12 +842,12 @@ app.post("/chat/intent", async (c) => {
     });
   }
 
-  // CODEX:RECOMMEND — call LLM for wine filter extraction
+  // CODEX:RECOMMEND — call LLM for vehicle filter extraction
   const API_KEY = getApiKey(INTENT_PROVIDER, c.env);
   const MODEL = getModelForRole(INTENT_PROVIDER, "INTENT");
   const BASE_URL = getBaseUrl(INTENT_PROVIDER);
 
-  const schemaInfo = getWineSchemaForPrompt();
+  const schemaInfo = getVehicleSchemaForPrompt();
   let tokenUsage: ReturnType<typeof buildTokenUsageResponse> = null;
 
   const prompt = generateIntentWithCuePrompt(lastAssistantContent, lastMessage, schemaInfo);
@@ -948,13 +947,13 @@ app.post("/chat/intent", async (c) => {
   // Check for "surprise" intent
   const isSurprise = parsed.intent === "surprise";
 
-  // Validate and normalize wine filters
-  const normalizedFilters = validateWineFilters(parsed.filters || {});
+  // Validate and normalize vehicle filters
+  const normalizedFilters = validateVehicleFilters(parsed.filters || {});
 
   // Apply brand constraint for Brand Concierge profile
   const profile = getProfile(c.env.PROFILE_TYPE);
   if (!profile.allowCrossBrand && profile.brandName) {
-    normalizedFilters.brand = profile.brandName;
+    normalizedFilters.make = profile.brandName;
   }
 
   trackAnalytics(c, (db) =>
@@ -1013,7 +1012,7 @@ app.post("/chat/product-lookup", async (c) => {
 
   try {
     // D1 name search — replaces Vectorize semantic search
-    const results = await lookupWineByName(c.env.WINE_DB, productQuery, 3);
+    const results = await lookupVehicleByName(c.env.VEHICLES_DB, productQuery, 3);
 
     if (results.length === 0) {
       trackAnalytics(c, (db) =>
@@ -1033,7 +1032,7 @@ app.post("/chat/product-lookup", async (c) => {
         product: null,
         confidence: 0,
         needsClarification: false,
-        message: "I couldn't find that wine in our catalog. Would you like me to search for recommendations?"
+        message: "I couldn't find that vehicle in our inventory. Would you like me to search for recommendations?"
       });
     }
 
@@ -1051,9 +1050,9 @@ app.post("/chat/product-lookup", async (c) => {
           predictedIntent: "product-question",
           product: {
             id: wine.id,
-            name: wine.name,
-            brand: wine.brand,
-            category: wine.wine_type,
+            name: [wine.year, wine.make, wine.model].filter(Boolean).join(' '),
+            brand: wine.make,
+            category: wine.body_type,
             rankPosition: 1,
             sourceKind: "product_lookup",
           },
@@ -1070,7 +1069,7 @@ app.post("/chat/product-lookup", async (c) => {
     }
 
     // Multiple matches — needs clarification
-    const topNames = results.map(r => r.name).filter(Boolean);
+    const topNames = results.map(r => [r.year, r.make, r.model].filter(Boolean).join(' ')).filter(Boolean);
 
     trackAnalytics(c, (db) =>
       recordProductLookupResult(db, {
@@ -1115,7 +1114,7 @@ app.post("/chat/product-lookup", async (c) => {
       confidence: 0,
       needsClarification: false,
       error: "Product lookup service temporarily unavailable",
-      message: "I'm having trouble searching for that wine. Would you like me to search for recommendations instead?"
+      message: "I'm having trouble searching for that vehicle. Would you like me to search for recommendations instead?"
     });
   }
 });
@@ -1403,19 +1402,19 @@ app.post("/chat/stream", async (c) => {
 app.post("/chat/recommendations", async (c) => {
   const body = await c.req.json();
   const messages = body.messages || [];
-  let filters: WineFilters = body.filters || {};
+  let filters: VehicleFilters = body.filters || {};
   const analytics = getAnalyticsContext(body);
   const userTextRaw = getLastUserMessage(messages);
   const recommendationsStartedAt = Date.now();
   const isSurprise = body.intent === "surprise";
 
   // Validate filters
-  filters = validateWineFilters(filters);
+  filters = validateVehicleFilters(filters);
 
   // Apply brand constraint for Brand Concierge profile
   const profile = getProfile(c.env.PROFILE_TYPE);
   if (!profile.allowCrossBrand && profile.brandName) {
-    filters.brand = profile.brandName;
+    filters.make = profile.brandName;
   }
 
   const lastMessages = messages.slice(-5);
@@ -1434,31 +1433,31 @@ app.post("/chat/recommendations", async (c) => {
   const lastAssistantMessage = enrichedHistory.slice(-2).find((m: any) => m.role === 'assistant')?.content || "";
 
   // D1 SQL search — replaces Vectorize
-  let results: WineResult[] = [];
+  let results: VehicleResult[] = [];
   let searchFallbackReason = isSurprise ? 'surprise_random' : 'exact_match';
   let appliedSearchFilters = filters;
   try {
     if (isSurprise) {
-      results = await surpriseMe(c.env.WINE_DB, filters, 8);
+      results = await surpriseMe(c.env.VEHICLES_DB, filters, 8);
       if (results.length === 0) {
-        const broadenedFilters: WineFilters = {};
-        if (filters.brand) broadenedFilters.brand = filters.brand;
-        if (filters.wine_type) broadenedFilters.wine_type = filters.wine_type;
+        const broadenedFilters: VehicleFilters = {};
+        if (filters.make) broadenedFilters.make = filters.make;
+        if (filters.body_type) broadenedFilters.body_type = filters.body_type;
 
-        results = await surpriseMe(c.env.WINE_DB, broadenedFilters, 8);
+        results = await surpriseMe(c.env.VEHICLES_DB, broadenedFilters, 8);
         searchFallbackReason = results.length > 0
           ? 'surprise_broadened'
           : 'no_valid_catalog_results';
         appliedSearchFilters = broadenedFilters;
       }
     } else {
-      const searchResult = await searchWinesWithFallback(c.env.WINE_DB, filters, 8);
+      const searchResult = await searchVehiclesWithFallback(c.env.VEHICLES_DB, filters, 8);
       results = searchResult.results;
       searchFallbackReason = searchResult.fallbackReason;
       appliedSearchFilters = searchResult.appliedFilters;
     }
   } catch (err) {
-    console.error("Wine search error:", err);
+    console.error("Vehicle search error:", err);
     trackAnalytics(c, (db) =>
       recordRecommendationResults(db, {
         analytics,
@@ -1470,12 +1469,12 @@ app.post("/chat/recommendations", async (c) => {
         preRankedCount: 0,
         finalRankCount: 0,
         status: "error",
-        errorCode: "wine_search_error",
-        fallbackReason: `search:${searchFallbackReason}|wine_search_error`,
+        errorCode: "vehicle_search_error",
+        fallbackReason: `search:${searchFallbackReason}|vehicle_search_error`,
         latencyMs: Date.now() - recommendationsStartedAt,
       })
     );
-    return c.json({ recommendations: [], error: "Wine search error" }, 200);
+    return c.json({ recommendations: [], error: "Vehicle search error" }, 200);
   }
 
   if (results.length === 0) {
@@ -1497,7 +1496,7 @@ app.post("/chat/recommendations", async (c) => {
 
     return c.json({
       recommendations: [],
-      error: "No wines found matching your criteria",
+      error: "No vehicles found matching your criteria",
       service: "recommendations",
       appliedFilters: appliedSearchFilters,
       fallbackReason: searchFallbackReason,
@@ -1518,9 +1517,9 @@ app.post("/chat/recommendations", async (c) => {
         predictedFilters: filters,
         recommendations: results.map((result, index) => ({
           id: typeof result.id === "string" ? result.id : null,
-          name: typeof result.name === "string" ? result.name : null,
-          brand: typeof result.brand === "string" ? result.brand : null,
-          category: result.wine_type || null,
+          name: [result.year, result.make, result.model].filter(Boolean).join(' ') || null,
+          brand: typeof result.make === "string" ? result.make : null,
+          category: result.body_type || null,
           rankPosition: index + 1,
           sourceKind: "recommendation",
         })),
@@ -1582,9 +1581,9 @@ app.post("/chat/recommendations", async (c) => {
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
-            name: typeof result.name === "string" ? result.name : null,
-            brand: typeof result.brand === "string" ? result.brand : null,
-            category: result.wine_type || null,
+            name: [result.year, result.make, result.model].filter(Boolean).join(' ') || null,
+            brand: typeof result.make === "string" ? result.make : null,
+            category: result.body_type || null,
             rankPosition: index + 1,
             sourceKind: "recommendation",
           })),
@@ -1622,9 +1621,9 @@ app.post("/chat/recommendations", async (c) => {
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
-            name: typeof result.name === "string" ? result.name : null,
-            brand: typeof result.brand === "string" ? result.brand : null,
-            category: result.wine_type || null,
+            name: [result.year, result.make, result.model].filter(Boolean).join(' ') || null,
+            brand: typeof result.make === "string" ? result.make : null,
+            category: result.body_type || null,
             rankPosition: index + 1,
             sourceKind: "recommendation",
           })),
@@ -1665,9 +1664,9 @@ app.post("/chat/recommendations", async (c) => {
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
-            name: typeof result.name === "string" ? result.name : null,
-            brand: typeof result.brand === "string" ? result.brand : null,
-            category: result.wine_type || null,
+            name: [result.year, result.make, result.model].filter(Boolean).join(' ') || null,
+            brand: typeof result.make === "string" ? result.make : null,
+            category: result.body_type || null,
             rankPosition: index + 1,
             sourceKind: "recommendation",
           })),
@@ -1695,7 +1694,7 @@ app.post("/chat/recommendations", async (c) => {
 
     devLog(c.env, "Re-ranking reasoning:", reasoning);
 
-    // Map ranked IDs back to full wine objects
+    // Map ranked IDs back to full vehicle objects
     const rankedProducts = rankedIds
       .map((id: string) => productMap.get(id))
       .filter((product: any) => product !== undefined);
@@ -1710,9 +1709,9 @@ app.post("/chat/recommendations", async (c) => {
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
-            name: typeof result.name === "string" ? result.name : null,
-            brand: typeof result.brand === "string" ? result.brand : null,
-            category: result.wine_type || null,
+            name: [result.year, result.make, result.model].filter(Boolean).join(' ') || null,
+            brand: typeof result.make === "string" ? result.make : null,
+            category: result.body_type || null,
             rankPosition: index + 1,
             sourceKind: "recommendation",
           })),
@@ -1742,9 +1741,9 @@ app.post("/chat/recommendations", async (c) => {
         predictedFilters: filters,
         recommendations: rankedProducts.map((product: any, index: number) => ({
           id: typeof product.id === "string" ? product.id : null,
-          name: typeof product.name === "string" ? product.name : null,
-          brand: typeof product.brand === "string" ? product.brand : null,
-          category: product.wine_type || null,
+          name: [product.year, product.make, product.model].filter(Boolean).join(' ') || null,
+          brand: typeof product.make === "string" ? product.make : null,
+          category: product.body_type || null,
           rankPosition: index + 1,
           sourceKind: "recommendation",
         })),
@@ -1776,9 +1775,9 @@ app.post("/chat/recommendations", async (c) => {
         predictedFilters: filters,
         recommendations: results.map((result, index) => ({
           id: typeof result.id === "string" ? result.id : null,
-          name: typeof result.name === "string" ? result.name : null,
-          brand: typeof result.brand === "string" ? result.brand : null,
-          category: result.wine_type || null,
+          name: [result.year, result.make, result.model].filter(Boolean).join(' ') || null,
+          brand: typeof result.make === "string" ? result.make : null,
+          category: result.body_type || null,
           rankPosition: index + 1,
           sourceKind: "recommendation",
         })),
