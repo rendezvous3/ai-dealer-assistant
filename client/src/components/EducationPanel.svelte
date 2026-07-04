@@ -133,7 +133,7 @@
   .education-panel__entry,
   .education-panel__accordion-item {
     border: 1px solid #2f3542;
-    border-radius: 12px;
+    border-radius: 8px;
     background: linear-gradient(180deg, rgba(18, 24, 36, 0.86), rgba(17, 22, 30, 0.82));
   }
 
@@ -214,7 +214,7 @@
     margin: 0;
     padding: 9px 10px;
     border: 1px solid #355950;
-    border-radius: 10px;
+    border-radius: 8px;
     background: rgba(28, 49, 45, 0.72);
     color: #c9eee6;
     font-size: 0.79rem;

@@ -61,6 +61,7 @@
   const BODY_TYPE_LABELS: Record<string, string> = {
     suv: 'SUV', truck: 'Truck', sedan: 'Sedan', hatchback: 'Hatchback',
     minivan: 'Minivan', coupe: 'Coupe', convertible: 'Convertible', wagon: 'Wagon',
+    van: 'Van',
   };
 
   const DRIVE_TYPE_LABELS: Record<string, string> = {

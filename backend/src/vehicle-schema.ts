@@ -3,7 +3,7 @@ export const VALID_BODY_TYPES = ['sedan', 'suv', 'truck', 'hatchback', 'minivan'
 export const VALID_DRIVE_TYPES = ['fwd', 'awd', '4wd', 'rwd'] as const;
 export const VALID_FUEL_TYPES = ['gasoline', 'hybrid', 'electric', 'diesel', 'plug-in-hybrid'] as const;
 export const VALID_USE_CASE_TAGS = ['family', 'commuter', 'adventure', 'commercial', 'performance', 'eco'] as const;
-export const VALID_PRIORITY_TAGS = ['safety', 'fuel-economy', 'cargo', 'towing', 'tech', 'reliability', 'performance', 'luxury'] as const;
+export const VALID_PRIORITY_TAGS = ['safety', 'fuel-economy', 'cargo', 'towing', 'tech', 'reliability', 'performance', 'luxury', 'value', 'comfort'] as const;
 
 export type Condition = typeof VALID_CONDITIONS[number];
 export type BodyType = typeof VALID_BODY_TYPES[number];
@@ -40,9 +40,12 @@ const BODY_TYPE_ALIASES: Record<string, BodyType> = {
   'sedan': 'sedan', 'car': 'sedan',
   'suv': 'suv', 'crossover': 'suv', 'cuv': 'suv', 'sport utility': 'suv',
   'truck': 'truck', 'pickup': 'truck', 'pickup truck': 'truck',
-  'hatchback': 'hatchback', 'hatch': 'hatchback', 'wagon': 'hatchback',
-  'minivan': 'minivan', 'van': 'minivan', 'people mover': 'minivan',
-  'coupe': 'coupe', 'convertible': 'coupe', 'sports car': 'coupe',
+  'hatchback': 'hatchback', 'hatch': 'hatchback',
+  'wagon': 'wagon', 'station wagon': 'wagon', 'estate': 'wagon',
+  'minivan': 'minivan', 'people mover': 'minivan',
+  'van': 'van', 'cargo van': 'van', 'passenger van': 'van', 'commercial van': 'van', 'work van': 'van',
+  'coupe': 'coupe', 'sports car': 'coupe',
+  'convertible': 'convertible', 'roadster': 'convertible',
 };
 const DRIVE_TYPE_ALIASES: Record<string, DriveType> = {
   'awd': 'awd', 'all-wheel': 'awd', 'all wheel drive': 'awd', 'all-wheel-drive': 'awd',

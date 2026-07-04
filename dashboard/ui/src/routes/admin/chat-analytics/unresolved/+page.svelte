@@ -127,11 +127,14 @@
   </div>
 
   <!-- Tab strip -->
-  <div class="mb-6 flex gap-1 border-b border-white/[0.07]">
+  <div class="mb-6 flex flex-wrap gap-1 border-b border-white/[0.07]">
     <a href="/admin/chat-analytics?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Overview</a>
-    <a href="/admin/chat-analytics/queries?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Queries</a>
+    <a href="/admin/chat-analytics/demand?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicle Demand</a>
+    <a href="/admin/chat-analytics/product-lookups?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicle Lookups</a>
+    <a href="/admin/chat-analytics/general-questions?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">General Questions</a>
+    <a href="/admin/chat-analytics/queries?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Raw Queries</a>
     <div class="border-b-2 border-white px-4 py-2 text-sm font-medium text-white">Unresolved</div>
-    <a href="/admin/chat-analytics/products?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Products</a>
+    <a href="/admin/chat-analytics/products?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicles</a>
     <a href="/admin/chat-analytics/sessions?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Sessions</a>
     <a href="/admin/chat-analytics/guided-flow?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Guided Flow</a>
     <a href="/admin/chat-analytics/compliance?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Compliance</a>

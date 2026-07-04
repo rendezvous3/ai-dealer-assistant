@@ -17,7 +17,6 @@ Parse the LAST assistant message (CODEX message) as the primary source. Use user
 
 **Extraction Rules:**
 - Extract ONLY what the user explicitly stated. Do NOT infer.
-- If user says "surprise me" → set action to "surprise". No filters needed.
 
 ${schemaInfo}
 
@@ -33,9 +32,12 @@ ${getVehicleSchemaForPrompt()}
 - "sedan", "car" (no other type) → body_type: "sedan"
 - "SUV", "crossover", "4x4" → body_type: "suv"
 - "truck", "pickup" → body_type: "truck"
-- "hatchback", "hatch", "wagon" → body_type: "hatchback"
-- "minivan", "van", "people mover" → body_type: "minivan"
-- "coupe", "sports car", "convertible" → body_type: "coupe"
+- "hatchback", "hatch" → body_type: "hatchback"
+- "wagon", "station wagon", "estate" → body_type: "wagon"
+- "minivan", "people mover" → body_type: "minivan"
+- "van", "cargo van", "passenger van", "commercial van", "work van" → body_type: "van"
+- "coupe", "sports car" → body_type: "coupe"
+- "convertible", "roadster" → body_type: "convertible"
 
 ## USE CASE MAPPING
 - "commute", "daily driver", "city driving", "to work" → use_case_tags: ["commuter"]
@@ -43,17 +45,19 @@ ${getVehicleSchemaForPrompt()}
 - "off-road", "adventure", "mountains", "skiing", "camping", "outdoors" → use_case_tags: ["adventure"]
 - "work truck", "tow", "haul", "jobsite", "commercial" → use_case_tags: ["commercial"]
 - "fast", "sporty", "fun to drive", "performance" → use_case_tags: ["performance"]
-- "fuel economy", "gas prices", "efficient", "hybrid", "electric", "eco" → use_case_tags: ["eco"]
+- "fuel economy", "gas prices", "gas budget", "gas saver", "save on gas", "efficient", "hybrid", "electric", "eco" → use_case_tags: ["eco"]
 
 ## PRIORITY MAPPING
 - "safe", "safety ratings", "5-star", "crash test" → priority_tags: ["safety"]
-- "efficient", "mpg", "fuel economy", "range" → priority_tags: ["fuel-economy"]
+- "efficient", "mpg", "fuel economy", "gas prices", "gas budget", "gas saver", "save on gas", "range" → priority_tags: ["fuel-economy"]
 - "cargo", "storage", "space", "seats 7", "third row" → priority_tags: ["cargo"]
 - "tow", "trailer", "towing capacity", "haul" → priority_tags: ["towing"]
 - "tech", "apple carplay", "screens", "connectivity", "infotainment" → priority_tags: ["tech"]
 - "reliable", "low maintenance", "dependable" → priority_tags: ["reliability"]
 - "powerful", "horsepower", "performance", "fast" → priority_tags: ["performance"]
 - "luxury", "premium", "comfortable", "leather" → priority_tags: ["luxury"]
+- "value", "best value", "deal", "affordable", "budget-friendly", "cheap" → priority_tags: ["value"]
+- "comfort", "comfortable", "quiet ride", "smooth ride", "ride quality" → priority_tags: ["comfort"]
 
 ## DRIVE TYPE MAPPING
 - "AWD", "all-wheel drive", "snow", "rain", "Seattle winters", "all weather" → drive_type: "awd"
@@ -66,7 +70,7 @@ ${getVehicleSchemaForPrompt()}
 - "electric", "EV", "battery electric" → fuel_type: "electric"
 - "plug-in", "PHEV", "plug-in hybrid" → fuel_type: "plug-in-hybrid"
 - "diesel" → fuel_type: "diesel"
-- "gas", "gasoline" → fuel_type: "gasoline"
+- "gas engine", "gas-only", "gasoline engine", "gasoline only" → fuel_type: "gasoline"
 
 ## PRICE EXTRACTION
 - "under $X", "less than $X", "below $X", "up to $X" → price_max: X
@@ -85,7 +89,7 @@ ${lastMessage}
 
 ## OUTPUT FORMAT (STRICT JSON — no markdown, no code blocks):
 {
-  "intent": "recommendation" | "product-question" | "general" | "surprise",
+  "intent": "recommendation" | "product-question" | "general",
   "filters": {
     "condition": string | null,
     "body_type": string | null,
@@ -110,6 +114,5 @@ CRITICAL OUTPUT RULES:
 - Start your response with { and end with }
 - Set null for any field not explicitly mentioned
 - Do NOT infer fields — only extract what was stated
-- For "surprise me" intent, set intent to "surprise" and leave filters null
 `;
 };

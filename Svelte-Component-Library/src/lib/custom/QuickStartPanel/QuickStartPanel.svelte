@@ -30,7 +30,6 @@
       <p class="quick-start-panel__label">Quick Start</p>
       <h4>Popular requests</h4>
     </div>
-    <span class="quick-start-panel__badge">New</span>
   </div>
   <p class="quick-start-panel__description">Some of the most requested starting points from shoppers right now.</p>
 
@@ -50,7 +49,7 @@
   .quick-start-panel {
     background: linear-gradient(180deg, #1d1f24 0%, #181a1f 100%);
     border: 1px solid #30343a;
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 14px 12px;
   }
 
@@ -75,16 +74,6 @@
     font-size: 1rem;
     color: #e5e9ef;
     font-weight: 400;
-  }
-
-  .quick-start-panel__badge {
-    background: #1f433e;
-    color: #d4f1ea;
-    font-size: 0.76rem;
-    border-radius: 8px;
-    padding: 5px 10px;
-    line-height: 1;
-    border: 1px solid #2f5d55;
   }
 
   .quick-start-panel__description {

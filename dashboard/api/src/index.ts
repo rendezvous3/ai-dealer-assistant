@@ -4,6 +4,9 @@ type Bindings = {
   ANALYTICS_DB?: D1Database;
   ANALYTICS_DB_QA?: D1Database;
   ANALYTICS_DB_PROD?: D1Database;
+  VEHICLES_DB?: D1Database;
+  VEHICLES_DB_QA?: D1Database;
+  VEHICLES_DB_PROD?: D1Database;
   WINE_DB?: D1Database;
   WINE_DB_QA?: D1Database;
   WINE_DB_PROD?: D1Database;
@@ -42,9 +45,9 @@ const COMPLIANCE_CATEGORIES = [
 function dbFor(c: { env: Bindings; req: { query(name: string): string | undefined } }): D1Database | null {
   const lane = (c.req.query('lane') || 'qa').toLowerCase();
   if (lane === 'prod') {
-    return c.env.ANALYTICS_DB_PROD ?? c.env.ANALYTICS_DB ?? c.env.WINE_DB_PROD ?? c.env.WINE_DB ?? null;
+    return c.env.ANALYTICS_DB_PROD ?? c.env.ANALYTICS_DB ?? c.env.VEHICLES_DB_PROD ?? c.env.VEHICLES_DB ?? c.env.WINE_DB_PROD ?? c.env.WINE_DB ?? null;
   }
-  return c.env.ANALYTICS_DB_QA ?? c.env.ANALYTICS_DB ?? c.env.WINE_DB_QA ?? c.env.WINE_DB ?? null;
+  return c.env.ANALYTICS_DB_QA ?? c.env.ANALYTICS_DB ?? c.env.VEHICLES_DB_QA ?? c.env.VEHICLES_DB ?? c.env.WINE_DB_QA ?? c.env.WINE_DB ?? null;
 }
 
 function q(value: unknown): string {
@@ -204,6 +207,101 @@ function productSort(sortBy?: string, sortDir?: string): string {
   const col = columns[sortBy || ''] || 'mentions';
   const dir = sortDir === 'asc' ? 'ASC' : 'DESC';
   return `${col} ${dir}`;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asText(value: unknown): string {
+  return String(value ?? '').trim();
+}
+
+function asList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => asText(item)).filter(Boolean);
+}
+
+function reasonHas(value: unknown, code: string): boolean {
+  const parsed = typeof value === 'string' ? parseJson(value) : value;
+  return Array.isArray(parsed) && parsed.includes(code);
+}
+
+function addExample(bucket: Record<string, unknown>, value: unknown): void {
+  const text = asText(value);
+  if (!text) return;
+  const examples = Array.isArray(bucket.example_queries) ? bucket.example_queries as string[] : [];
+  if (!examples.includes(text) && examples.length < 3) examples.push(text);
+  bucket.example_queries = examples;
+}
+
+function latestIso(current: unknown, next: unknown): unknown {
+  const currentText = asText(current);
+  const nextText = asText(next);
+  if (!currentText) return next || null;
+  if (!nextText) return current || null;
+  return nextText > currentText ? next : current;
+}
+
+function matchesSearch(row: Record<string, unknown>, search?: string, keys: string[] = []): boolean {
+  if (!search) return true;
+  const needle = search.toLowerCase();
+  const haystack = keys
+    .flatMap((key) => {
+      const value = row[key];
+      return Array.isArray(value) ? value : [value];
+    })
+    .map((value) => asText(value).toLowerCase())
+    .join(' ');
+  return haystack.includes(needle);
+}
+
+function sortDictRows(rows: Record<string, unknown>[], sortBy?: string, sortDir?: string, fallback = 'requests'): Record<string, unknown>[] {
+  const key = sortBy || fallback;
+  const dir = sortDir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    const av = a[key];
+    const bv = b[key];
+    if (typeof av === 'number' || typeof bv === 'number') {
+      return ((Number(av) || 0) - (Number(bv) || 0)) * dir;
+    }
+    return asText(av).localeCompare(asText(bv)) * dir;
+  });
+}
+
+function vehicleDemandLabel(filters: Record<string, unknown>, row: Row, isLookup: boolean): { label: string; make: string; model: string; body: string; fuel: string; priceBand: string } {
+  const make = asText(filters.make);
+  const model = asText(filters.model);
+  const body = asText(filters.body_type);
+  const fuel = asText(filters.fuel_type);
+  const priceMax = Number(filters.price_max || 0);
+  const priceBand = Number.isFinite(priceMax) && priceMax > 0 ? `under $${Math.round(priceMax).toLocaleString()}` : '';
+  const useCases = asList(filters.use_case_tags);
+  const priorities = asList(filters.priority_tags);
+  const lookupName = asText(row.product_name) || asText(row.product_query);
+  const labelParts = isLookup
+    ? [lookupName || asText(row.user_text_normalized) || 'Specific vehicle lookup']
+    : [make, model, body, fuel, ...useCases.slice(0, 2), ...priorities.slice(0, 2), priceBand];
+  return {
+    label: labelParts.filter(Boolean).join(' / ') || 'Vehicle recommendation',
+    make,
+    model,
+    body: body || asText(row.category),
+    fuel,
+    priceBand
+  };
+}
+
+function generalQuestionTopic(text: string, bucket: string): { topic: string; subtopic: string } {
+  const qText = text.toLowerCase();
+  if (/finance|payment|loan|apr|lease|monthly|credit/.test(qText)) return { topic: 'Financing', subtopic: 'Payments and credit' };
+  if (/trade|sell my|trade-in|value my/.test(qText)) return { topic: 'Trade-In', subtopic: 'Vehicle value' };
+  if (/carfax|accident|owner|history|damage|service record/.test(qText)) return { topic: 'Vehicle History', subtopic: 'CARFAX and condition' };
+  if (/warranty|certified|cpo|inspection/.test(qText)) return { topic: 'Warranty / CPO', subtopic: 'Coverage and certification' };
+  if (/hours|open|location|address|phone|appointment/.test(qText)) return { topic: 'Dealership Info', subtopic: 'Contact and hours' };
+  if (/mpg|fuel|hybrid|electric|ev|gas/.test(qText)) return { topic: 'Fuel Economy', subtopic: 'Efficiency education' };
+  if (/safe|safety|reliable|maintenance|repair/.test(qText)) return { topic: 'Ownership', subtopic: 'Safety and maintenance' };
+  return { topic: bucket || 'General Shopping', subtopic: 'Buying guidance' };
 }
 
 function complianceEventWhere(params: {
@@ -947,6 +1045,282 @@ app.get('/chat-analytics/compliance/tuning', async (c) => {
     slang_sanitized_by_term: slangRows.map((row) => ({ term: String(row.term || 'unknown'), event_count: rowInt(row, 'event_count'), replacement_count: rowInt(row, 'replacement_count') })),
     refused_sessions: refusedRows.map((row) => ({ session_id: String(row.session_id || ''), event_count: rowInt(row, 'event_count'), message_count: rowInt(row, 'message_count'), first_refusal_at: row.first_refusal_at || null, last_refusal_at: row.last_refusal_at || null })),
     age_gate_bypass_by_violation: bypassRows.map((row) => ({ violation: String(row.violation || 'unknown'), event_count: rowInt(row, 'event_count'), message_count: rowInt(row, 'message_count'), session_count: rowInt(row, 'session_count'), last_seen_at: row.last_seen_at || null }))
+  });
+});
+
+app.get('/chat-analytics/product-demand', async (c) => {
+  const db = dbFor(c);
+  if (!db) return noDb(c);
+  if (!(await hasTable(db, 'chat_messages'))) return c.json({ demand: [], total: 0, rollups: { make: [], body_type: [], fuel_type: [], priority: [] } });
+
+  const limit = intParam(c.req.query('limit'), 50, 1, 200);
+  const offset = intParam(c.req.query('offset'), 0, 0, 100000);
+  const search = c.req.query('search') || undefined;
+  const source = c.req.query('source') || undefined;
+  const startedAfter = c.req.query('started_after') || undefined;
+  const startedBefore = c.req.query('started_before') || undefined;
+  const hasSequences = await hasTable(db, 'chat_search_sequences');
+  const hasProducts = await hasTable(db, 'chat_message_products');
+  const sequenceJoin = hasSequences ? 'LEFT JOIN chat_search_sequences sq ON sq.search_sequence_id = m.search_sequence_id' : '';
+  const productJoin = hasProducts
+    ? `LEFT JOIN (
+        SELECT message_id,
+          MAX(product_id) AS product_id,
+          MAX(product_name) AS product_name,
+          MAX(brand) AS brand,
+          MAX(category) AS category,
+          COUNT(CASE WHEN clicked_at IS NOT NULL THEN 1 END) AS clicks,
+          COUNT(CASE WHEN external_clicked_at IS NOT NULL THEN 1 END) AS external_clicks
+        FROM chat_message_products
+        GROUP BY message_id
+      ) p ON p.message_id = m.message_id`
+    : '';
+  const clauses = [
+    'm.user_text_normalized IS NOT NULL',
+    confirmationExclusionSql(),
+    `(m.predicted_cue IN ('RECOMMEND', 'PRODUCT_LOOKUP') OR m.predicted_intent IN ('recommendation', 'product-question', 'product-context-question') OR (m.product_query IS NOT NULL AND TRIM(m.product_query) != ''))`,
+    ...timeClauses('m.created_at', startedAfter, startedBefore)
+  ];
+  if (search) clauses.push(`(m.user_text_normalized LIKE ${q(`%${search}%`)} OR m.product_query LIKE ${q(`%${search}%`)})`);
+  const rows = await all(
+    db,
+    `SELECT m.message_id, m.session_id, m.user_text_raw, m.user_text_normalized, m.predicted_cue, m.predicted_intent, m.predicted_filters_json, m.semantic_search, m.product_query, m.result_count, m.fallback_reason, m.created_at AS last_seen, ${hasSequences ? 'sq.source' : "'chat' AS source"}, ${hasSequences ? 'sq.reason_codes_json' : 'NULL AS reason_codes_json'}, ${hasProducts ? 'p.product_id, p.product_name, p.brand, p.category, p.clicks, p.external_clicks' : 'NULL AS product_id, NULL AS product_name, NULL AS brand, NULL AS category, 0 AS clicks, 0 AS external_clicks'} FROM chat_messages m ${sequenceJoin} ${productJoin}${where(clauses)} ORDER BY m.created_at DESC LIMIT 5000`
+  );
+
+  const groups = new Map<string, Record<string, unknown>>();
+  const rollups = {
+    make: new Map<string, number>(),
+    body_type: new Map<string, number>(),
+    fuel_type: new Map<string, number>(),
+    priority: new Map<string, number>()
+  };
+  for (const row of rows) {
+    const rowSource = asText(row.source) || 'chat';
+    if (source && rowSource !== source) continue;
+    const filters = asRecord(parseJson(row.predicted_filters_json));
+    const isLookup =
+      row.predicted_cue === 'PRODUCT_LOOKUP' ||
+      row.predicted_intent === 'product-question' ||
+      row.predicted_intent === 'product-context-question' ||
+      !!asText(row.product_query);
+    const demand = vehicleDemandLabel(filters, row, isLookup);
+    const item = {
+      label: demand.label,
+      make: demand.make || asText(row.brand),
+      model: demand.model,
+      body_type: demand.body,
+      fuel_type: demand.fuel,
+      price_band: demand.priceBand,
+      demand_type: isLookup ? 'vehicle_lookup' : 'recommendation'
+    };
+    if (!matchesSearch({ ...item, example_queries: [row.user_text_raw, row.user_text_normalized, row.product_query] }, search, ['label', 'make', 'model', 'body_type', 'fuel_type', 'example_queries'])) continue;
+
+    const key = [item.demand_type, item.label, item.make, item.body_type, item.fuel_type, rowSource].join('|');
+    const bucket = groups.get(key) ?? {
+      ...item,
+      source: rowSource,
+      requests: 0,
+      sessions: new Set<string>(),
+      results_shown: 0,
+      no_match_count: 0,
+      clicks: 0,
+      external_clicks: 0,
+      last_seen: null,
+      example_queries: []
+    };
+    bucket.requests = Number(bucket.requests) + 1;
+    (bucket.sessions as Set<string>).add(asText(row.session_id));
+    bucket.results_shown = Number(bucket.results_shown) + rowInt(row, 'result_count');
+    if (rowInt(row, 'result_count') === 0 || reasonHas(row.reason_codes_json, 'no_results') || ['no_match', 'missing_product_query'].includes(asText(row.fallback_reason))) {
+      bucket.no_match_count = Number(bucket.no_match_count) + 1;
+    }
+    bucket.clicks = Number(bucket.clicks) + rowInt(row, 'clicks');
+    bucket.external_clicks = Number(bucket.external_clicks) + rowInt(row, 'external_clicks');
+    bucket.last_seen = latestIso(bucket.last_seen, row.last_seen);
+    addExample(bucket, row.user_text_raw || row.product_query || row.user_text_normalized);
+    groups.set(key, bucket);
+
+    if (item.make) rollups.make.set(item.make, (rollups.make.get(item.make) ?? 0) + 1);
+    if (item.body_type) rollups.body_type.set(item.body_type, (rollups.body_type.get(item.body_type) ?? 0) + 1);
+    if (item.fuel_type) rollups.fuel_type.set(item.fuel_type, (rollups.fuel_type.get(item.fuel_type) ?? 0) + 1);
+    for (const priority of asList(filters.priority_tags)) rollups.priority.set(priority, (rollups.priority.get(priority) ?? 0) + 1);
+  }
+
+  const normalized = [...groups.values()].map((row) => {
+    const sessions = row.sessions as Set<string>;
+    return {
+      ...row,
+      sessions: sessions.size,
+      ctr: safeRate(Number(row.clicks), Number(row.results_shown))
+    };
+  });
+  const sorted = sortDictRows(normalized, c.req.query('sort_by') || undefined, c.req.query('sort_dir') || undefined, 'requests');
+  const rollup = (map: Map<string, number>) => [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 20).map(([label, count]) => ({ label, count }));
+  return c.json({
+    demand: sorted.slice(offset, offset + limit),
+    total: sorted.length,
+    rollups: {
+      make: rollup(rollups.make),
+      body_type: rollup(rollups.body_type),
+      fuel_type: rollup(rollups.fuel_type),
+      priority: rollup(rollups.priority)
+    }
+  });
+});
+
+app.get('/chat-analytics/product-lookups', async (c) => {
+  const db = dbFor(c);
+  if (!db) return noDb(c);
+  if (!(await hasTable(db, 'chat_messages'))) return c.json({ lookups: [], total: 0 });
+  const hasSequences = await hasTable(db, 'chat_search_sequences');
+  const hasProducts = await hasTable(db, 'chat_message_products');
+  const limit = intParam(c.req.query('limit'), 50, 1, 200);
+  const offset = intParam(c.req.query('offset'), 0, 0, 100000);
+  const search = c.req.query('search') || undefined;
+  const startedAfter = c.req.query('started_after') || undefined;
+  const startedBefore = c.req.query('started_before') || undefined;
+  const productJoin = hasProducts
+    ? `LEFT JOIN chat_message_products p ON p.message_id = m.message_id AND (p.source_kind = 'product_lookup' OR m.predicted_cue = 'PRODUCT_LOOKUP')`
+    : '';
+  const sequenceJoin = hasSequences ? 'LEFT JOIN chat_search_sequences sq ON sq.search_sequence_id = m.search_sequence_id' : '';
+  const clauses = [
+    `(m.predicted_cue = 'PRODUCT_LOOKUP' OR m.predicted_intent IN ('product-question', 'product-context-question') OR (m.product_query IS NOT NULL AND TRIM(m.product_query) != ''))`,
+    ...timeClauses('m.created_at', startedAfter, startedBefore)
+  ];
+  if (search) clauses.push(`(m.user_text_normalized LIKE ${q(`%${search}%`)} OR m.product_query LIKE ${q(`%${search}%`)} ${hasProducts ? `OR p.product_name LIKE ${q(`%${search}%`)}` : ''})`);
+  const rows = await all(
+    db,
+    `SELECT m.message_id, m.user_text_raw, m.user_text_normalized, m.predicted_intent, m.predicted_filters_json, m.product_query, m.result_count, m.fallback_reason, m.created_at AS last_seen, ${hasSequences ? 'sq.reason_codes_json' : 'NULL AS reason_codes_json'}, ${hasProducts ? 'p.product_id, p.product_name, p.brand, p.category, p.clicked_at, p.external_clicked_at' : 'NULL AS product_id, NULL AS product_name, NULL AS brand, NULL AS category, NULL AS clicked_at, NULL AS external_clicked_at'} FROM chat_messages m ${sequenceJoin} ${productJoin}${where(clauses)} ORDER BY m.created_at DESC LIMIT 5000`
+  );
+  const groups = new Map<string, Record<string, unknown>>();
+  for (const row of rows) {
+    const filters = asRecord(parseJson(row.predicted_filters_json));
+    const productName = asText(row.product_name) || asText(row.product_query) || asText(row.user_text_normalized) || 'Unknown vehicle';
+    const productId = asText(row.product_id) || productName;
+    const key = [productId, productName].join('|');
+    const bucket = groups.get(key) ?? {
+      product_id: productId,
+      product: productName,
+      make: asText(row.brand) || asText(filters.make),
+      category: asText(row.category) || asText(filters.body_type),
+      lookup_count: 0,
+      follow_up_count: 0,
+      no_match_count: 0,
+      clarification_count: 0,
+      clicks: 0,
+      external_clicks: 0,
+      last_seen: null,
+      example_queries: []
+    };
+    bucket.lookup_count = Number(bucket.lookup_count) + 1;
+    if (row.predicted_intent === 'product-context-question') bucket.follow_up_count = Number(bucket.follow_up_count) + 1;
+    if (row.fallback_reason === 'clarification') bucket.clarification_count = Number(bucket.clarification_count) + 1;
+    if (rowInt(row, 'result_count') === 0 || reasonHas(row.reason_codes_json, 'no_results') || ['no_match', 'missing_product_query'].includes(asText(row.fallback_reason))) {
+      bucket.no_match_count = Number(bucket.no_match_count) + 1;
+    }
+    if (row.clicked_at) bucket.clicks = Number(bucket.clicks) + 1;
+    if (row.external_clicked_at) bucket.external_clicks = Number(bucket.external_clicks) + 1;
+    bucket.last_seen = latestIso(bucket.last_seen, row.last_seen);
+    addExample(bucket, row.user_text_raw || row.product_query || row.user_text_normalized);
+    groups.set(key, bucket);
+  }
+  const sorted = sortDictRows([...groups.values()], c.req.query('sort_by') || undefined, c.req.query('sort_dir') || undefined, 'lookup_count');
+  return c.json({ lookups: sorted.slice(offset, offset + limit), total: sorted.length });
+});
+
+app.get('/chat-analytics/general-questions', async (c) => {
+  const db = dbFor(c);
+  if (!db) return noDb(c);
+  if (!(await hasTable(db, 'chat_messages'))) return c.json({ questions: [], total: 0, topics: [] });
+  const hasSequences = await hasTable(db, 'chat_search_sequences');
+  const limit = intParam(c.req.query('limit'), 50, 1, 200);
+  const offset = intParam(c.req.query('offset'), 0, 0, 100000);
+  const search = c.req.query('search') || undefined;
+  const topic = c.req.query('topic') || undefined;
+  const startedAfter = c.req.query('started_after') || undefined;
+  const startedBefore = c.req.query('started_before') || undefined;
+  const sequenceJoin = hasSequences ? 'LEFT JOIN chat_search_sequences sq ON sq.search_sequence_id = m.search_sequence_id' : '';
+  const clauses = [
+    'm.user_text_normalized IS NOT NULL',
+    confirmationExclusionSql(),
+    `(m.predicted_intent = 'general' OR (m.predicted_cue IS NULL AND (m.predicted_intent IS NULL OR m.predicted_intent = 'general')))`,
+    `(m.predicted_cue IS NULL OR m.predicted_cue NOT IN ('RECOMMEND', 'PRODUCT_LOOKUP'))`,
+    ...timeClauses('m.created_at', startedAfter, startedBefore)
+  ];
+  if (search) clauses.push(`m.user_text_normalized LIKE ${q(`%${search}%`)}`);
+  const rows = await all(
+    db,
+    `SELECT m.message_id, m.session_id, m.user_text_raw, m.user_text_normalized, m.assistant_response_text, m.predicted_filters_json, m.created_at AS last_seen, ${hasSequences ? 'sq.resolved_bucket_label' : "NULL AS resolved_bucket_label"} FROM chat_messages m ${sequenceJoin}${where(clauses)} ORDER BY m.created_at DESC LIMIT 5000`
+  );
+  const groups = new Map<string, Record<string, unknown>>();
+  const topicCounts = new Map<string, number>();
+  for (const row of rows) {
+    const text = asText(row.user_text_raw) || asText(row.user_text_normalized);
+    const taxonomy = generalQuestionTopic(text, asText(row.resolved_bucket_label));
+    if (topic && taxonomy.topic !== topic) continue;
+    const key = [taxonomy.topic, taxonomy.subtopic].join('|');
+    const bucket = groups.get(key) ?? {
+      topic: taxonomy.topic,
+      subtopic: taxonomy.subtopic,
+      question_count: 0,
+      sessions: new Set<string>(),
+      answered_count: 0,
+      last_seen: null,
+      example_queries: []
+    };
+    bucket.question_count = Number(bucket.question_count) + 1;
+    (bucket.sessions as Set<string>).add(asText(row.session_id));
+    if (asText(row.assistant_response_text)) bucket.answered_count = Number(bucket.answered_count) + 1;
+    bucket.last_seen = latestIso(bucket.last_seen, row.last_seen);
+    addExample(bucket, text);
+    groups.set(key, bucket);
+    topicCounts.set(taxonomy.topic, (topicCounts.get(taxonomy.topic) ?? 0) + 1);
+  }
+  const normalized = [...groups.values()].map((row) => ({ ...row, sessions: (row.sessions as Set<string>).size }));
+  const sorted = sortDictRows(normalized, c.req.query('sort_by') || undefined, c.req.query('sort_dir') || undefined, 'question_count');
+  const topics = [...topicCounts.entries()].sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+  return c.json({ questions: sorted.slice(offset, offset + limit), total: sorted.length, topics });
+});
+
+app.get('/chat-analytics/unmet-demand/summary', async (c) => {
+  const db = dbFor(c);
+  if (!db) return noDb(c);
+  if (!(await hasTable(db, 'chat_search_sequences'))) return c.json({ total_requests: 0, total_sessions: 0, distinct_items: 0, top: null, buckets: [], categories: [] });
+  const startedAfter = c.req.query('started_after') || undefined;
+  const startedBefore = c.req.query('started_before') || undefined;
+  const clauses = [
+    `(status = 'unresolved' OR ${reasonCodeExistsSql('reason_codes_json', 'no_results')})`,
+    ...timeClauses('started_at', startedAfter, startedBefore)
+  ];
+  const rows = await all(
+    db,
+    `SELECT resolved_query_text, resolved_query_normalized, reason_codes_json, session_id, started_at FROM chat_search_sequences${where(clauses)} ORDER BY started_at DESC LIMIT 1000`
+  );
+  const groups = new Map<string, Record<string, unknown>>();
+  const categories = new Map<string, { count: number; items: Set<string>; last_seen: unknown }>();
+  for (const row of rows) {
+    const label = asText(row.resolved_query_text) || asText(row.resolved_query_normalized) || 'Unmet request';
+    const reasons = Array.isArray(parseJson(row.reason_codes_json)) ? parseJson(row.reason_codes_json) as string[] : [];
+    const category = reasons.includes('no_results') ? 'No Results' : 'Unresolved Conversation';
+    const bucket = groups.get(label) ?? { label, category, count: 0, sessions: new Set<string>(), reasons, last_seen: null };
+    bucket.count = Number(bucket.count) + 1;
+    (bucket.sessions as Set<string>).add(asText(row.session_id));
+    bucket.last_seen = latestIso(bucket.last_seen, row.started_at);
+    groups.set(label, bucket);
+    const cat = categories.get(category) ?? { count: 0, items: new Set<string>(), last_seen: null };
+    cat.count += 1;
+    cat.items.add(label);
+    cat.last_seen = latestIso(cat.last_seen, row.started_at);
+    categories.set(category, cat);
+  }
+  const buckets = sortDictRows([...groups.values()].map((row) => ({ ...row, sessions: (row.sessions as Set<string>).size })), 'count', 'desc', 'count');
+  return c.json({
+    total_requests: rows.length,
+    total_sessions: new Set(rows.map((row) => asText(row.session_id)).filter(Boolean)).size,
+    distinct_items: buckets.length,
+    top: buckets[0] ?? null,
+    buckets,
+    categories: [...categories.entries()].map(([category, value]) => ({ category, count: value.count, items: value.items.size, last_seen: value.last_seen })).sort((a, b) => b.count - a.count)
   });
 });
 

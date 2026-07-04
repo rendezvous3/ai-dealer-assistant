@@ -9,7 +9,7 @@
 
   let {
     profileType = 'merchant_advisor',
-    storeName = 'our shop',
+    storeName = 'our dealership',
     onSubmit
   }: TranscriptShareCardProps = $props();
 
@@ -32,7 +32,7 @@
 
   let subtext = $derived(
     profileType === 'brand_concierge'
-      ? `Send yourself the conversation and bottles from ${storeName}.`
+      ? `Send yourself the conversation and vehicle recommendations from ${storeName}.`
       : 'Keep the conversation and recommendations handy for later.'
   );
 

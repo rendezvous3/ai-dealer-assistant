@@ -6,6 +6,7 @@
 
   interface Product {
     id?: string;
+    vin?: string;
     image: string;
     title: string;
     price: number;
@@ -16,10 +17,20 @@
     subcategory?: string;
     shopLink?: string;
     brand?: string;
-    thc_percentage?: number;
-    thc_per_unit_mg?: number;
-    thc_total_mg?: number;
-    pack_count?: number;
+    condition?: string;
+    body_type?: string;
+    drive_type?: string;
+    fuel_type?: string;
+    mileage?: number;
+    engine?: string;
+    year?: number;
+    make?: string;
+    model?: string;
+    trim?: string;
+    dealer_name?: string;
+    source_name?: string;
+    key_features?: string[];
+    description?: string;
     rankPosition?: number;
   }
 

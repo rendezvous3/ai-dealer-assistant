@@ -74,12 +74,13 @@
     padding: var(--card-padding, 12px);
     background: #ffffff;
     border: 2px solid #e5e7eb;
-    border-radius: 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: left;
     width: 100%;
     min-height: 64px;
+    overflow: hidden;
   }
 
   .flow-option-card:hover:not(.flow-option-card--disabled) {
@@ -113,7 +114,7 @@
   .flow-option-card--compact .flow-option-card__icon {
     width: var(--card-icon-size, 28px);
     height: var(--card-icon-size, 28px);
-    margin-bottom: 2px;
+    margin-bottom: 6px;
   }
 
   .flow-option-card--compact .flow-option-card__content {
@@ -160,8 +161,8 @@
 
   .flow-option-card__icon {
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
+    width: var(--card-icon-size, 40px);
+    height: var(--card-icon-size, 40px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -171,6 +172,16 @@
   .flow-option-card__icon svg {
     width: 100%;
     height: 100%;
+  }
+
+  .flow-option-card__icon :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .flow-option-card__content {
@@ -213,6 +224,7 @@
   :global([data-theme="dark"]) .flow-option-card {
     background: #252526;
     border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   :global(.dark) .flow-option-card__label,
@@ -227,7 +239,7 @@
 
   :global(.dark) .flow-option-card:hover:not(.flow-option-card--disabled),
   :global([data-theme="dark"]) .flow-option-card:hover:not(.flow-option-card--disabled) {
-    background: #2d2d30;
+    background: color-mix(in srgb, var(--flow-theme-color, #3b82f6) 8%, #2d2d30);
     border-color: var(--flow-theme-color, #3b82f6);
   }
 
@@ -239,4 +251,3 @@
     box-shadow: 0 4px 12px color-mix(in srgb, var(--flow-theme-color, #3b82f6) 15%, transparent);
   }
 </style>
-

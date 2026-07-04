@@ -231,13 +231,31 @@
 	</div>
 
 	<!-- Tab strip -->
-	<div class="mb-6 flex gap-1 border-b border-white/[0.07]">
+	<div class="mb-6 flex flex-wrap gap-1 border-b border-white/[0.07]">
 		<div class="border-b-2 border-white px-4 py-2 text-sm font-medium text-white">Overview</div>
+		<a
+			href="/admin/chat-analytics/demand?lane={lane}"
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white"
+		>
+			Vehicle Demand
+		</a>
+		<a
+			href="/admin/chat-analytics/product-lookups?lane={lane}"
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white"
+		>
+			Vehicle Lookups
+		</a>
+		<a
+			href="/admin/chat-analytics/general-questions?lane={lane}"
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white"
+		>
+			General Questions
+		</a>
 		<a
 			href="/admin/chat-analytics/queries?lane={lane}"
 			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white"
 		>
-			Queries
+			Raw Queries
 		</a>
 		<a
 			href="/admin/chat-analytics/unresolved?lane={lane}"
@@ -249,7 +267,7 @@
 			href="/admin/chat-analytics/products?lane={lane}"
 			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white"
 		>
-			Products
+			Vehicles
 		</a>
 		<a
 			href="/admin/chat-analytics/sessions?lane={lane}"
@@ -452,7 +470,7 @@
 				sub={fmtQueryDelta(overview.total_queries, overview.prev_total_queries)}
 			/>
 			<InsightCardV3
-				label="No Product Match"
+				label="No Vehicle Match"
 				value="{overview.no_results_rate}%"
 				sub={`${overview.no_results_count.toLocaleString()} / ${overview.search_sequence_count.toLocaleString()} search sequences${overview.prev_no_results_rate != null ? ` · ${fmtDelta(overview.no_results_rate, overview.prev_no_results_rate)}` : ''}`}
 				tone={noResultsTone(overview.no_results_rate)}
@@ -515,7 +533,7 @@
 		<div class="mt-6 grid gap-6 xl:grid-cols-2">
 			<div class="overflow-hidden rounded-xl border border-white/[0.07] bg-[#111111]">
 				<div class="border-b border-white/[0.05] px-4 py-3">
-					<h3 class="text-sm font-medium text-[#f5f5f5]">Recent No Product Matches</h3>
+					<h3 class="text-sm font-medium text-[#f5f5f5]">Recent No Vehicle Matches</h3>
 				</div>
 				<table class="w-full text-xs">
 					<thead>
@@ -551,7 +569,7 @@
 									{/if}
 								</td>
 								<td class="px-3 py-3 text-[#737373]">
-									search ran; zero products
+									search ran; zero vehicles
 									{#if row.reasons?.length}
 										<span class="ml-1 text-[#525252]">({row.reasons.join(', ')})</span>
 									{/if}
@@ -561,7 +579,7 @@
 						{:else}
 							<tr
 								><td colspan="4" class="px-5 py-8 text-center text-sm text-[#737373]"
-									>No product-match misses found</td
+									>No vehicle-match misses found</td
 								></tr
 							>
 						{/each}

@@ -26,8 +26,7 @@ import { getVehicleSchemaForPrompt } from './vehicle-schema';
 import {
   getCatalogFacets,
   lookupVehicleByName,
-  searchVehiclesWithFallback,
-  surpriseMe
+  searchVehiclesWithFallback
 } from './vehicle-search';
 import type { VehicleFilters, VehicleResult } from './vehicle-search';
 import { getProfile } from './profiles';
@@ -70,6 +69,115 @@ function devLog(env: Bindings | undefined, ...args: any[]) {
   }
 }
 
+function deriveVehicleFiltersFromText(text: string): VehicleFilters | null {
+  const lower = ` ${text.toLowerCase().replace(/[$,]/g, '').replace(/[^a-z0-9.\s-]/g, ' ').replace(/\s+/g, ' ')} `;
+  const filters: VehicleFilters = {};
+  const useCases = new Set<string>();
+  const priorities = new Set<string>();
+  const hasAny = (terms: string[]) => terms.some((term) => lower.includes(` ${term} `));
+  const hasPhrase = (terms: string[]) => terms.some((term) => lower.includes(term));
+
+  const makeAliases: Array<[string, string[]]> = [
+    ['Toyota', ['toyota', 'toyotas']],
+    ['Honda', ['honda', 'hondas']],
+    ['Ford', ['ford', 'fords']],
+    ['Chevrolet', ['chevrolet', 'chevy']],
+    ['Subaru', ['subaru']],
+    ['Mazda', ['mazda']],
+    ['Nissan', ['nissan']],
+    ['Hyundai', ['hyundai']],
+    ['Kia', ['kia']],
+    ['BMW', ['bmw']],
+    ['Mercedes-Benz', ['mercedes', 'mercedes-benz', 'benz']],
+    ['Audi', ['audi']],
+    ['Lexus', ['lexus']],
+    ['Genesis', ['genesis']],
+    ['Jeep', ['jeep']],
+    ['Ram', ['ram']],
+    ['GMC', ['gmc']],
+    ['Volvo', ['volvo']],
+    ['Volkswagen', ['volkswagen', 'vw']],
+    ['Tesla', ['tesla']],
+    ['Rivian', ['rivian']],
+    ['Acura', ['acura']],
+    ['Dodge', ['dodge']],
+    ['Chrysler', ['chrysler']],
+  ];
+
+  for (const [make, aliases] of makeAliases) {
+    if (hasAny(aliases)) {
+      filters.make = make;
+      break;
+    }
+  }
+
+  if (hasAny(['used', 'pre-owned', 'preowned'])) filters.condition = 'used';
+  if (hasAny(['certified', 'cpo'])) filters.condition = 'cpo';
+  if (hasPhrase(['brand new']) || hasAny(['new'])) filters.condition = 'new';
+
+  if (hasAny(['suv', 'crossover', 'crossovers'])) filters.body_type = 'suv';
+  if (hasAny(['truck', 'pickup'])) filters.body_type = 'truck';
+  if (hasAny(['sedan'])) filters.body_type = 'sedan';
+  if (hasAny(['hatchback', 'hatch'])) filters.body_type = 'hatchback';
+  if (hasAny(['wagon'])) filters.body_type = 'wagon';
+  if (hasAny(['minivan'])) filters.body_type = 'minivan';
+  if (hasPhrase(['work van', 'cargo van']) || hasAny(['van'])) filters.body_type = 'van';
+  if (hasAny(['coupe'])) filters.body_type = 'coupe';
+  if (hasAny(['convertible'])) filters.body_type = 'convertible';
+
+  if (hasAny(['hybrid', 'hev'])) filters.fuel_type = 'hybrid';
+  if (hasAny(['electric', 'ev'])) filters.fuel_type = 'electric';
+  if (hasPhrase(['plug in hybrid', 'plug-in hybrid']) || hasAny(['phev'])) filters.fuel_type = 'plug-in-hybrid';
+  if (hasAny(['diesel'])) filters.fuel_type = 'diesel';
+  if (hasPhrase(['gas only', 'gasoline only', 'gas engine'])) filters.fuel_type = 'gasoline';
+
+  if (hasAny(['awd']) || hasPhrase(['all wheel drive', 'all-wheel drive'])) filters.drive_type = 'awd';
+  if (hasAny(['4wd', '4x4']) || hasPhrase(['four wheel drive', 'four-wheel drive'])) filters.drive_type = '4wd';
+  if (hasAny(['fwd']) || hasPhrase(['front wheel drive', 'front-wheel drive'])) filters.drive_type = 'fwd';
+  if (hasAny(['rwd']) || hasPhrase(['rear wheel drive', 'rear-wheel drive'])) filters.drive_type = 'rwd';
+
+  if (hasAny(['family', 'kids', 'carpool'])) useCases.add('family');
+  if (hasAny(['commute', 'commuter']) || hasPhrase(['daily driver'])) useCases.add('commuter');
+  if (hasAny(['camping', 'outdoors', 'adventure']) || hasPhrase(['off road', 'off-road'])) useCases.add('adventure');
+  if (hasAny(['commercial', 'jobsite']) || hasPhrase(['work truck'])) useCases.add('commercial');
+  if (hasAny(['performance', 'sporty', 'fast'])) useCases.add('performance');
+  if (hasPhrase(['fuel economy', 'gas budget', 'gas saver', 'save on gas']) || hasAny(['efficient', 'eco', 'mpg'])) {
+    useCases.add('eco');
+    priorities.add('fuel-economy');
+  }
+
+  if (hasAny(['safe', 'safety'])) priorities.add('safety');
+  if (hasAny(['reliable', 'dependable'])) priorities.add('reliability');
+  if (hasAny(['cargo', 'storage', 'space'])) priorities.add('cargo');
+  if (hasAny(['tow', 'towing', 'trailer'])) priorities.add('towing');
+  if (hasAny(['tech', 'carplay', 'infotainment'])) priorities.add('tech');
+  if (hasAny(['luxury', 'premium', 'leather'])) priorities.add('luxury');
+  if (hasAny(['value', 'deal', 'affordable', 'budget', 'cheap'])) priorities.add('value');
+  if (hasAny(['comfort', 'comfortable', 'quiet', 'smooth'])) priorities.add('comfort');
+  if (hasAny(['powerful', 'horsepower'])) priorities.add('performance');
+
+  const priceMaxMatch = lower.match(/\b(?:under|below|less than|up to)\s+(\d+(?:\.\d+)?)\s*(k|thousand)?\b/);
+  if (priceMaxMatch) {
+    const raw = Number(priceMaxMatch[1]);
+    if (Number.isFinite(raw)) {
+      const isThousands = Boolean(priceMaxMatch[2]) || raw < 1000;
+      filters.price_max = isThousands ? Math.round(raw * 1000) : Math.round(raw);
+    }
+  }
+
+  const seatsMatch = lower.match(/\b(?:seats|seat)\s+(\d+)\b/) || lower.match(/\b(\d+)\s+(?:seats|seater|passenger)\b/);
+  if (seatsMatch) {
+    const seats = Number(seatsMatch[1]);
+    if (Number.isFinite(seats) && seats > 0) filters.seats_min = seats;
+  }
+
+  if (useCases.size > 0) filters.use_case_tags = [...useCases];
+  if (priorities.size > 0) filters.priority_tags = [...priorities];
+
+  const normalized = validateVehicleFilters(filters as Record<string, any>);
+  return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
 function buildTokenUsageResponse(
   modelName: string,
   usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined,
@@ -95,6 +203,50 @@ function buildTokenUsageResponse(
     model: modelName,
     modelContextLimit: tokenLimits.contextWindow,
   };
+}
+
+function shouldUseNoReasoning(modelName: string): boolean {
+  return /^(gpt-5\.[1-9]|gpt-5\.[1-9][0-9]|gpt-5\.4|gpt-5\.5)/.test(modelName);
+}
+
+function buildChatCompletionPayload(
+  provider: LLM_PROVIDER,
+  model: string,
+  messages: Array<Record<string, unknown>>,
+  temperature: number,
+  maxTokens: number,
+  stream: boolean,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    model,
+    messages,
+    temperature,
+    stream,
+  };
+
+  if (provider === LLM_PROVIDER.OPENAI) {
+    payload.max_completion_tokens = maxTokens;
+    if (shouldUseNoReasoning(model)) {
+      payload.reasoning_effort = "none";
+    }
+  } else {
+    payload.max_tokens = maxTokens;
+  }
+
+  return payload;
+}
+
+function sanitizeMessagesForLLM(messages: any[]): Array<{ role: string; content: string }> {
+  return messages
+    .filter((msg) =>
+      (msg?.role === "user" || msg?.role === "assistant" || msg?.role === "system") &&
+      typeof msg?.content === "string" &&
+      msg.content.trim().length > 0
+    )
+    .map((msg) => ({
+      role: msg.role,
+      content: msg.content.trim(),
+    }));
 }
 
 function getLastUserMessage(messages: any[]): string {
@@ -310,7 +462,7 @@ function formatTranscriptPrice(value: number | null | undefined): string {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return "Price unavailable";
   }
-  return `$${value.toFixed(2)}`;
+  return `$${Math.round(value).toLocaleString()}`;
 }
 
 function buildTranscriptEmail(
@@ -323,7 +475,7 @@ function buildTranscriptEmail(
   let recommendationCount = 0;
 
   const textSections = messages.map((message) => {
-    const speaker = message.role === "user" ? "You" : message.role === "system" ? "System" : "Sommelier";
+    const speaker = message.role === "user" ? "You" : message.role === "system" ? "System" : "Vehicle Advisor";
     const lines = [`${speaker}:`];
 
     if (message.content) {
@@ -342,7 +494,7 @@ function buildTranscriptEmail(
           recommendation.condition
         ].filter(Boolean);
 
-        lines.push(`- ${recommendation.name ?? "Recommended bottle"}${detailParts.length > 0 ? ` (${detailParts.join(" • ")})` : ""}`);
+        lines.push(`- ${recommendation.name ?? "Recommended vehicle"}${detailParts.length > 0 ? ` (${detailParts.join(" • ")})` : ""}`);
         lines.push(`  ${formatTranscriptPrice(recommendation.price)}`);
         if (recommendation.shop_link) {
           lines.push(`  ${recommendation.shop_link}`);
@@ -354,7 +506,7 @@ function buildTranscriptEmail(
   });
 
   const htmlSections = messages.map((message) => {
-    const speaker = message.role === "user" ? "You" : message.role === "system" ? "System" : "Sommelier";
+    const speaker = message.role === "user" ? "You" : message.role === "system" ? "System" : "Vehicle Advisor";
     const productsHtml = message.recommendations.length > 0
       ? `<div style="margin-top:12px;"><div style="font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">Recommendations</div><ul style="margin:0;padding-left:18px;">${message.recommendations.map((recommendation) => {
           const detailParts = [
@@ -364,7 +516,7 @@ function buildTranscriptEmail(
             recommendation.condition
           ].filter(Boolean);
 
-          return `<li style="margin-bottom:10px;"><div style="font-weight:600;color:#111827;">${escapeHtml(recommendation.name ?? "Recommended bottle")}</div><div style="color:#6b7280;font-size:13px;">${escapeHtml(detailParts.join(" • ")) || "&nbsp;"}</div><div style="color:#111827;font-size:13px;">${escapeHtml(formatTranscriptPrice(recommendation.price))}</div>${recommendation.shop_link ? `<div style="font-size:13px;"><a href="${escapeHtml(recommendation.shop_link)}" style="color:#1d4ed8;">View bottle</a></div>` : ""}</li>`;
+          return `<li style="margin-bottom:10px;"><div style="font-weight:600;color:#111827;">${escapeHtml(recommendation.name ?? "Recommended vehicle")}</div><div style="color:#6b7280;font-size:13px;">${escapeHtml(detailParts.join(" • ")) || "&nbsp;"}</div><div style="color:#111827;font-size:13px;">${escapeHtml(formatTranscriptPrice(recommendation.price))}</div>${recommendation.shop_link ? `<div style="font-size:13px;"><a href="${escapeHtml(recommendation.shop_link)}" style="color:#1d4ed8;">View vehicle</a></div>` : ""}</li>`;
         }).join("")}</ul></div>`
       : "";
 
@@ -798,6 +950,32 @@ app.post("/chat/intent", async (c) => {
 
   // No CODEX cue → return general immediately
   if (!hasRecommendCue && !hasProductCue) {
+    let derivedFilters = deriveVehicleFiltersFromText(lastMessage);
+    const profile = getProfile(c.env.PROFILE_TYPE);
+    if (derivedFilters && !profile.allowCrossBrand && profile.brandName) {
+      derivedFilters = { ...derivedFilters, make: profile.brandName };
+    }
+
+    if (derivedFilters) {
+      trackAnalytics(c, (db) =>
+        recordIntentAnalysis(db, {
+          analytics,
+          userTextRaw,
+          predictedIntent: "recommendation",
+          predictedFilters: derivedFilters,
+          status: "completed",
+          latencyMs: Date.now() - intentStartedAt,
+        })
+      );
+
+      return c.json({
+        intent: 'recommendation',
+        filters: derivedFilters,
+        product_query: null,
+        assistantQuery: assistantQuery
+      });
+    }
+
     trackAnalytics(c, (db) =>
       recordIntentAnalysis(db, {
         analytics,
@@ -860,13 +1038,14 @@ app.post("/chat/intent", async (c) => {
         Authorization: `Bearer ${API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: "system", content: prompt }],
-        temperature: 0,
-        max_tokens: 1000,
-        stream: false
-      })
+      body: JSON.stringify(buildChatCompletionPayload(
+        INTENT_PROVIDER,
+        MODEL,
+        [{ role: "system", content: prompt }],
+        0,
+        4000,
+        false
+      ))
     });
 
     if (!resp.ok) {
@@ -944,9 +1123,6 @@ app.post("/chat/intent", async (c) => {
 
   const parsed = parseResult.data;
 
-  // Check for "surprise" intent
-  const isSurprise = parsed.intent === "surprise";
-
   // Validate and normalize vehicle filters
   const normalizedFilters = validateVehicleFilters(parsed.filters || {});
 
@@ -961,7 +1137,7 @@ app.post("/chat/intent", async (c) => {
       analytics,
       userTextRaw,
       predictedCue: "RECOMMEND",
-      predictedIntent: isSurprise ? "surprise" : "recommendation",
+      predictedIntent: "recommendation",
       predictedFilters: normalizedFilters,
       status: "completed",
       latencyMs: Date.now() - intentStartedAt,
@@ -969,7 +1145,7 @@ app.post("/chat/intent", async (c) => {
   );
 
   return c.json({
-    intent: isSurprise ? "surprise" : "recommendation",
+    intent: "recommendation",
     filters: normalizedFilters,
     product_query: null,
     assistantQuery: assistantQuery,
@@ -1006,7 +1182,7 @@ app.post("/chat/product-lookup", async (c) => {
       product: null,
       confidence: 0,
       needsClarification: false,
-      message: "No product query provided"
+      message: "No vehicle query provided"
     });
   }
 
@@ -1036,10 +1212,33 @@ app.post("/chat/product-lookup", async (c) => {
       });
     }
 
-    // Confidence based on result count (replaces cosine similarity)
-    // 1 result = high confidence, 2-3 = needs clarification
-    if (results.length === 1) {
-      const wine = results[0];
+    const vehicleLabel = (vehicle: VehicleResult) =>
+      [vehicle.year, vehicle.make, vehicle.model, vehicle.trim].filter(Boolean).join(' ');
+    const lookupTokens = (value: string) =>
+      value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .filter(Boolean);
+    const hasDirectVehicleNameMatch = (query: string, vehicle: VehicleResult) => {
+      const queryTokens = new Set(lookupTokens(query));
+      const labelTokens = lookupTokens(vehicleLabel(vehicle));
+      return labelTokens.length > 0 && labelTokens.every((token) => queryTokens.has(token));
+    };
+
+    const topScore = Number((results[0] as any)?.lookup_score ?? 0);
+    const secondScore = Number((results[1] as any)?.lookup_score ?? 0);
+    const hasDirectTopMatch = hasDirectVehicleNameMatch(productQuery, results[0]);
+    const hasDirectSecondMatch = results[1] ? hasDirectVehicleNameMatch(productQuery, results[1]) : false;
+    const hasConfidentTopMatch =
+      results.length === 1 ||
+      (hasDirectTopMatch && !hasDirectSecondMatch) ||
+      (topScore >= 60 && topScore >= secondScore + 20);
+
+    if (hasConfidentTopMatch) {
+      const vehicle = results[0];
 
       trackAnalytics(c, (db) =>
         recordProductLookupResult(db, {
@@ -1049,10 +1248,10 @@ app.post("/chat/product-lookup", async (c) => {
           predictedCue: "PRODUCT_LOOKUP",
           predictedIntent: "product-question",
           product: {
-            id: wine.id,
-            name: [wine.year, wine.make, wine.model].filter(Boolean).join(' '),
-            brand: wine.make,
-            category: wine.body_type,
+            id: vehicle.id,
+            name: vehicleLabel(vehicle),
+            brand: vehicle.make,
+            category: vehicle.body_type,
             rankPosition: 1,
             sourceKind: "product_lookup",
           },
@@ -1062,14 +1261,14 @@ app.post("/chat/product-lookup", async (c) => {
       );
 
       return c.json({
-        product: wine,
+        product: vehicle,
         confidence: 1.0,
         needsClarification: false
       });
     }
 
     // Multiple matches — needs clarification
-    const topNames = results.map(r => [r.year, r.make, r.model].filter(Boolean).join(' ')).filter(Boolean);
+    const topNames = results.map(vehicleLabel).filter(Boolean);
 
     trackAnalytics(c, (db) =>
       recordProductLookupResult(db, {
@@ -1096,7 +1295,7 @@ app.post("/chat/product-lookup", async (c) => {
     });
 
   } catch (err) {
-    console.error("Product lookup error:", err);
+    console.error("Vehicle lookup error:", err);
     trackAnalytics(c, (db) =>
       recordProductLookupResult(db, {
         analytics,
@@ -1113,7 +1312,7 @@ app.post("/chat/product-lookup", async (c) => {
       product: null,
       confidence: 0,
       needsClarification: false,
-      error: "Product lookup service temporarily unavailable",
+      error: "Vehicle lookup service temporarily unavailable",
       message: "I'm having trouble searching for that vehicle. Would you like me to search for recommendations instead?"
     });
   }
@@ -1198,10 +1397,7 @@ app.post("/chat/stream", async (c) => {
     c.env.PROFILE_TYPE
   );
 
-  const cleanMessages = lastMessages.map((msg: any) => {
-    const { recommendations, ...rest } = msg;
-    return rest;
-  });
+  const cleanMessages = sanitizeMessagesForLLM(lastMessages);
 
   const messagesForLLM = [
     { role: "system", content: "Hello." },
@@ -1217,13 +1413,14 @@ app.post("/chat/stream", async (c) => {
         Authorization: `Bearer ${API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: messagesForLLM,
-        temperature: 0.1,
-        max_tokens: 900,
-        stream: true
-      })
+      body: JSON.stringify(buildChatCompletionPayload(
+        STREAM_PROVIDER,
+        MODEL,
+        messagesForLLM,
+        0.1,
+        900,
+        true
+      ))
     });
 
     if (!response || !response.ok) {
@@ -1406,7 +1603,6 @@ app.post("/chat/recommendations", async (c) => {
   const analytics = getAnalyticsContext(body);
   const userTextRaw = getLastUserMessage(messages);
   const recommendationsStartedAt = Date.now();
-  const isSurprise = body.intent === "surprise";
 
   // Validate filters
   filters = validateVehicleFilters(filters);
@@ -1434,28 +1630,13 @@ app.post("/chat/recommendations", async (c) => {
 
   // D1 SQL search — replaces Vectorize
   let results: VehicleResult[] = [];
-  let searchFallbackReason = isSurprise ? 'surprise_random' : 'exact_match';
+  let searchFallbackReason = 'exact_match';
   let appliedSearchFilters = filters;
   try {
-    if (isSurprise) {
-      results = await surpriseMe(c.env.VEHICLES_DB, filters, 8);
-      if (results.length === 0) {
-        const broadenedFilters: VehicleFilters = {};
-        if (filters.make) broadenedFilters.make = filters.make;
-        if (filters.body_type) broadenedFilters.body_type = filters.body_type;
-
-        results = await surpriseMe(c.env.VEHICLES_DB, broadenedFilters, 8);
-        searchFallbackReason = results.length > 0
-          ? 'surprise_broadened'
-          : 'no_valid_catalog_results';
-        appliedSearchFilters = broadenedFilters;
-      }
-    } else {
-      const searchResult = await searchVehiclesWithFallback(c.env.VEHICLES_DB, filters, 8);
-      results = searchResult.results;
-      searchFallbackReason = searchResult.fallbackReason;
-      appliedSearchFilters = searchResult.appliedFilters;
-    }
+    const searchResult = await searchVehiclesWithFallback(c.env.VEHICLES_DB, filters, 8);
+    results = searchResult.results;
+    searchFallbackReason = searchResult.fallbackReason;
+    appliedSearchFilters = searchResult.appliedFilters;
   } catch (err) {
     console.error("Vehicle search error:", err);
     trackAnalytics(c, (db) =>
@@ -1463,7 +1644,7 @@ app.post("/chat/recommendations", async (c) => {
         analytics,
         userTextRaw,
         predictedCue: "RECOMMEND",
-        predictedIntent: isSurprise ? "surprise" : "recommendation",
+        predictedIntent: "recommendation",
         predictedFilters: filters,
         recommendations: [],
         preRankedCount: 0,
@@ -1483,7 +1664,7 @@ app.post("/chat/recommendations", async (c) => {
         analytics,
         userTextRaw,
         predictedCue: "RECOMMEND",
-        predictedIntent: isSurprise ? "surprise" : "recommendation",
+        predictedIntent: "recommendation",
         predictedFilters: filters,
         recommendations: [],
         preRankedCount: 0,
@@ -1513,7 +1694,7 @@ app.post("/chat/recommendations", async (c) => {
         analytics,
         userTextRaw,
         predictedCue: "RECOMMEND",
-        predictedIntent: isSurprise ? "surprise" : "recommendation",
+        predictedIntent: "recommendation",
         predictedFilters: filters,
         recommendations: results.map((result, index) => ({
           id: typeof result.id === "string" ? result.id : null,
@@ -1559,13 +1740,14 @@ app.post("/chat/recommendations", async (c) => {
         Authorization: `Bearer ${API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [{ role: "system", content: reRankPrompt }],
-        temperature: 0.1,
-        max_tokens: 2500,
-        stream: false
-      })
+      body: JSON.stringify(buildChatCompletionPayload(
+        RERANK_PROVIDER,
+        MODEL,
+        [{ role: "system", content: reRankPrompt }],
+        0.1,
+        2500,
+        false
+      ))
     });
 
     if (!resp.ok) {
@@ -1577,7 +1759,7 @@ app.post("/chat/recommendations", async (c) => {
           analytics,
           userTextRaw,
           predictedCue: "RECOMMEND",
-          predictedIntent: isSurprise ? "surprise" : "recommendation",
+          predictedIntent: "recommendation",
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
@@ -1617,7 +1799,7 @@ app.post("/chat/recommendations", async (c) => {
           analytics,
           userTextRaw,
           predictedCue: "RECOMMEND",
-          predictedIntent: isSurprise ? "surprise" : "recommendation",
+          predictedIntent: "recommendation",
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
@@ -1660,7 +1842,7 @@ app.post("/chat/recommendations", async (c) => {
           analytics,
           userTextRaw,
           predictedCue: "RECOMMEND",
-          predictedIntent: isSurprise ? "surprise" : "recommendation",
+          predictedIntent: "recommendation",
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
@@ -1705,7 +1887,7 @@ app.post("/chat/recommendations", async (c) => {
           analytics,
           userTextRaw,
           predictedCue: "RECOMMEND",
-          predictedIntent: isSurprise ? "surprise" : "recommendation",
+          predictedIntent: "recommendation",
           predictedFilters: filters,
           recommendations: results.map((result, index) => ({
             id: typeof result.id === "string" ? result.id : null,
@@ -1737,7 +1919,7 @@ app.post("/chat/recommendations", async (c) => {
         analytics,
         userTextRaw,
         predictedCue: "RECOMMEND",
-        predictedIntent: isSurprise ? "surprise" : "recommendation",
+        predictedIntent: "recommendation",
         predictedFilters: filters,
         recommendations: rankedProducts.map((product: any, index: number) => ({
           id: typeof product.id === "string" ? product.id : null,
@@ -1771,7 +1953,7 @@ app.post("/chat/recommendations", async (c) => {
         analytics,
         userTextRaw,
         predictedCue: "RECOMMEND",
-        predictedIntent: isSurprise ? "surprise" : "recommendation",
+        predictedIntent: "recommendation",
         predictedFilters: filters,
         recommendations: results.map((result, index) => ({
           id: typeof result.id === "string" ? result.id : null,

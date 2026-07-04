@@ -396,7 +396,7 @@ function detectPredictedCue(text: string | null | undefined): string | null {
   if (
     content.includes("I completely understand what you're looking for") ||
     content.includes("Let me check what we have that matches your preferences") ||
-    content.includes("I'm pulling up wines that fit your criteria") ||
+    content.includes("I'm pulling up vehicles that fit your criteria") ||
     content.includes("Checking our selection based on what you described")
   ) {
     return "RECOMMEND";
@@ -423,7 +423,7 @@ function inferBucketLabel(params: {
 }): string | null {
   const predictedIntent = safeString(params.predictedIntent)?.toLowerCase();
   if (predictedIntent === "recommendation" || predictedIntent === "product-question") {
-    return "Product search";
+    return "Vehicle search";
   }
 
   const haystack = [
@@ -437,16 +437,16 @@ function inferBucketLabel(params: {
 
   if (!haystack) return null;
 
-  if (/\b(price|deal|deals|sale|sales|cheap|under \$|cost)\b/.test(haystack)) {
+  if (/\b(price|deal|deals|sale|sales|cheap|under \$|cost|payment|monthly|finance|financing|lease)\b/.test(haystack)) {
     return "Deals & pricing";
   }
-  if (/\b(hours|open|close|delivery|deliver|pickup|location|address)\b/.test(haystack)) {
-    return "Store info";
+  if (/\b(hours|open|close|location|address|dealer|dealership|test drive|appointment)\b/.test(haystack)) {
+    return "Dealer info";
   }
-  if (/\b(loyalty|points|account|login|return|refund|job|apply)\b/.test(haystack)) {
-    return "Account";
+  if (/\b(credit|prequalify|pre-qualified|trade|trade-in|warranty|return|refund|job|apply)\b/.test(haystack)) {
+    return "Ownership & financing";
   }
-  if (/\b(what is|what are|difference|terpene|terpenes|cannabinoid|cannabinoids|thc|cbd|rs o|rso)\b/.test(haystack)) {
+  if (/\b(what is|what are|difference|awd|4wd|fwd|rwd|hybrid|electric|ev|mpg|cpo|certified pre-owned|carfax|vin|trim|drivetrain|horsepower|towing)\b/.test(haystack)) {
     return "Education";
   }
   return null;

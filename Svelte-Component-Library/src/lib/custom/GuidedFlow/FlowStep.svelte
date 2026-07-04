@@ -215,7 +215,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 12px 6px 6px 6px;
+    padding: 14px 8px 8px 8px;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
@@ -260,7 +260,7 @@
   .flow-step__options {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
 
   .flow-step__options--grid {
@@ -269,7 +269,7 @@
       var(--grid-columns, auto-fit),
       minmax(var(--grid-min-width, 100px), 1fr)
     );
-    gap: 6px;
+    gap: 8px;
   }
 
   .flow-step__dual-slider {

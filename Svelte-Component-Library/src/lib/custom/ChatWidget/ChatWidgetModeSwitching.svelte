@@ -116,7 +116,7 @@
       ]
     },
     {
-      id: 'thc-percentage',
+      id: 'power-preference',
       title: 'How potent would you like it?',
       subtitle: '(Select one)',
       type: 'single-select' as const,

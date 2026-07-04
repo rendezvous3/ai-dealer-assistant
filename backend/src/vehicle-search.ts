@@ -17,6 +17,7 @@ export interface VehicleFilters {
 
 export interface VehicleResult {
   id: string;
+  vin?: string;
   condition: string;
   year: number;
   make: string;
@@ -35,12 +36,15 @@ export interface VehicleResult {
   price: number;
   msrp?: number;
   exterior_color?: string;
+  interior_color?: string;
   description?: string;
   key_features?: string[];
   use_case_tags?: string[];
   priority_tags?: string[];
   image_url?: string;
   dealer_name?: string;
+  dealer_zip?: string;
+  source_name?: string;
   source_url?: string;
   in_stock: number;
   featured: number;
@@ -59,6 +63,56 @@ function mapRow(row: any): VehicleResult {
     use_case_tags: parseJsonArray(row.use_case_tags),
     priority_tags: parseJsonArray(row.priority_tags),
   };
+}
+
+const LOOKUP_STOP_WORDS = new Set([
+  'a', 'about', 'all', 'any', 'are', 'can', 'car', 'carfax', 'cars', 'could', 'details',
+  'do', 'does', 'for', 'got', 'have', 'history', 'i', 'in', 'info', 'inventory', 'is',
+  'it', 'its', 'let', 'like', 'listing', 'look', 'lookup', 'me', 'more', 'of', 'on',
+  'please', 'pull', 'report', 'show', 'that', 'the', 'tell', 'this', 'up', 'vehicle',
+  'vehicles', 'what', 'with', 'you', 'your'
+]);
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function parseLookupQuery(query: string): { tokens: string[]; years: number[] } {
+  const normalized = query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const rawTokens = normalized ? normalized.split(' ') : [];
+  const years = uniqueStrings(rawTokens.filter((token) => /^(19|20)\d{2}$/.test(token)))
+    .map((token) => Number(token))
+    .filter((year) => Number.isFinite(year));
+  const tokens = uniqueStrings(
+    rawTokens.filter((token) =>
+      token.length > 1 &&
+      !LOOKUP_STOP_WORDS.has(token) &&
+      !/^(19|20)\d{2}$/.test(token)
+    )
+  ).slice(0, 10);
+
+  return { tokens, years };
+}
+
+function fuelEconomyOrder(filters: VehicleFilters): string {
+  const priorities = filters.priority_tags ?? [];
+  const useCases = filters.use_case_tags ?? [];
+  const wantsFuelEconomy =
+    filters.fuel_type === 'hybrid' ||
+    filters.fuel_type === 'plug-in-hybrid' ||
+    filters.fuel_type === 'electric' ||
+    priorities.includes('fuel-economy') ||
+    useCases.includes('eco');
+
+  return wantsFuelEconomy
+    ? `CASE WHEN v.fuel_type IN ('hybrid', 'plug-in-hybrid', 'electric') THEN 1 ELSE 0 END DESC,
+       COALESCE(v.mpg_city, 0) DESC,
+       COALESCE(v.mpg_highway, 0) DESC,`
+    : '';
 }
 
 export async function searchVehicles(
@@ -129,7 +183,7 @@ export async function searchVehicles(
   }
 
   const where = conditions.join(' AND ');
-  const sql = `SELECT v.* FROM vehicles v WHERE ${where} ORDER BY v.featured DESC, v.price ASC LIMIT ?`;
+  const sql = `SELECT v.* FROM vehicles v WHERE ${where} ORDER BY ${fuelEconomyOrder(filters)} v.featured DESC, v.price ASC LIMIT ?`;
   params.push(limit);
 
   const result = await db.prepare(sql).bind(...params).all();
@@ -140,30 +194,30 @@ export async function searchVehiclesWithFallback(
   db: D1Database,
   filters: VehicleFilters,
   limit = 8
-): Promise<{ results: VehicleResult[]; usedFilters: VehicleFilters }> {
+): Promise<{ results: VehicleResult[]; appliedFilters: VehicleFilters; fallbackReason: string }> {
   // Tier 1: full match
   let results = await searchVehicles(db, filters, limit);
-  if (results.length > 0) return { results, usedFilters: filters };
+  if (results.length > 0) return { results, appliedFilters: filters, fallbackReason: 'exact_match' };
 
   // Tier 2: drop priority_tags
   if (filters.priority_tags?.length) {
     const f = { ...filters, priority_tags: undefined };
     results = await searchVehicles(db, f, limit);
-    if (results.length > 0) return { results, usedFilters: f };
+    if (results.length > 0) return { results, appliedFilters: f, fallbackReason: 'dropped_priority_tags' };
   }
 
   // Tier 3: drop use_case_tags
   if (filters.use_case_tags?.length) {
     const f = { ...filters, priority_tags: undefined, use_case_tags: undefined };
     results = await searchVehicles(db, f, limit);
-    if (results.length > 0) return { results, usedFilters: f };
+    if (results.length > 0) return { results, appliedFilters: f, fallbackReason: 'dropped_use_case_tags' };
   }
 
   // Tier 4: drop drive_type + fuel_type
   if (filters.drive_type || filters.fuel_type) {
     const f = { ...filters, priority_tags: undefined, use_case_tags: undefined, drive_type: undefined, fuel_type: undefined };
     results = await searchVehicles(db, f, limit);
-    if (results.length > 0) return { results, usedFilters: f };
+    if (results.length > 0) return { results, appliedFilters: f, fallbackReason: 'dropped_drive_and_fuel' };
   }
 
   // Tier 5: condition + body_type + price only
@@ -175,7 +229,7 @@ export async function searchVehiclesWithFallback(
       price_max: filters.price_max,
     };
     results = await searchVehicles(db, f, limit);
-    if (results.length > 0) return { results, usedFilters: f };
+    if (results.length > 0) return { results, appliedFilters: f, fallbackReason: 'condition_body_price_only' };
   }
 
   // Tier 6: body_type + price only
@@ -186,7 +240,7 @@ export async function searchVehiclesWithFallback(
       price_max: filters.price_max,
     };
     results = await searchVehicles(db, f, limit);
-    if (results.length > 0) return { results, usedFilters: f };
+    if (results.length > 0) return { results, appliedFilters: f, fallbackReason: 'body_price_only' };
   }
 
   // Tier 7: price only
@@ -196,7 +250,7 @@ export async function searchVehiclesWithFallback(
       price_max: filters.price_max,
     };
     results = await searchVehicles(db, f, limit);
-    return { results, usedFilters: f };
+    return { results, appliedFilters: f, fallbackReason: results.length > 0 ? 'price_only' : 'no_valid_catalog_results' };
   }
 }
 
@@ -205,33 +259,61 @@ export async function lookupVehicleByName(
   query: string,
   limit = 3
 ): Promise<VehicleResult[]> {
-  const terms = query.toLowerCase().trim().split(/\s+/);
-  const likeClauses = terms.map(() => `(LOWER(v.make) LIKE ? OR LOWER(v.model) LIKE ? OR LOWER(v.trim) LIKE ?)`);
-  const params: any[] = [];
-  terms.forEach(t => { params.push(`%${t}%`, `%${t}%`, `%${t}%`); });
+  const { tokens, years } = parseLookupQuery(query);
+  const fallbackTokens = tokens.length || years.length ? [] : query.toLowerCase().trim().split(/\s+/).filter(Boolean).slice(0, 5);
+  const effectiveTokens = tokens.length ? tokens : fallbackTokens;
+  const searchable = `LOWER(
+    CAST(v.year AS TEXT) || ' ' ||
+    COALESCE(v.make, '') || ' ' ||
+    COALESCE(v.model, '') || ' ' ||
+    COALESCE(v.trim, '') || ' ' ||
+    COALESCE(v.vin, '') || ' ' ||
+    COALESCE(v.description, '') || ' ' ||
+    COALESCE(v.key_features, '') || ' ' ||
+    COALESCE(v.source_name, '')
+  )`;
+  const whereClauses: string[] = [];
+  const whereParams: any[] = [];
+
+  effectiveTokens.forEach((token) => {
+    whereClauses.push(`${searchable} LIKE ?`);
+    whereParams.push(`%${token}%`);
+  });
+  years.forEach((year) => {
+    whereClauses.push('v.year = ?');
+    whereParams.push(year);
+  });
+
+  if (whereClauses.length === 0) return [];
+
+  const scoreParts: string[] = [];
+  const scoreParams: any[] = [];
+  effectiveTokens.forEach((token) => {
+    scoreParts.push(`CASE WHEN LOWER(v.make) = ? THEN 40 ELSE 0 END`);
+    scoreParams.push(token);
+    scoreParts.push(`CASE WHEN LOWER(v.model) = ? THEN 35 ELSE 0 END`);
+    scoreParams.push(token);
+    scoreParts.push(`CASE WHEN LOWER(COALESCE(v.trim, '')) = ? THEN 28 ELSE 0 END`);
+    scoreParams.push(token);
+    scoreParts.push(`CASE WHEN ${searchable} LIKE ? THEN 8 ELSE 0 END`);
+    scoreParams.push(`%${token}%`);
+  });
+  years.forEach((year) => {
+    scoreParts.push(`CASE WHEN v.year = ? THEN 50 ELSE 0 END`);
+    scoreParams.push(year);
+  });
+
+  const params = [...scoreParams, ...whereParams];
   params.push(limit);
 
-  const sql = `SELECT v.* FROM vehicles v WHERE v.in_stock = 1 AND ${likeClauses.join(' AND ')} LIMIT ?`;
-  const result = await db.prepare(sql).bind(...params).all();
-  return (result.results || []).map(mapRow);
-}
-
-export async function surpriseMe(
-  db: D1Database,
-  filters: VehicleFilters,
-  limit = 8
-): Promise<VehicleResult[]> {
-  const conditions: string[] = ['v.in_stock = 1'];
-  const params: any[] = [];
-
-  if (filters.condition) { conditions.push('v.condition = ?'); params.push(filters.condition); }
-  if (filters.body_type) { conditions.push('v.body_type = ?'); params.push(filters.body_type); }
-  if (filters.price_max != null) { conditions.push('v.price <= ?'); params.push(filters.price_max); }
-  if (filters.price_min != null) { conditions.push('v.price >= ?'); params.push(filters.price_min); }
-
-  const where = conditions.join(' AND ');
-  params.push(limit);
-  const sql = `SELECT v.* FROM vehicles v WHERE ${where} ORDER BY RANDOM() LIMIT ?`;
+  const scoreSql = scoreParts.length ? scoreParts.join(' + ') : '0';
+  const sql = `
+    SELECT v.*, (${scoreSql}) AS lookup_score
+    FROM vehicles v
+    WHERE v.in_stock = 1 AND (${whereClauses.join(' OR ')})
+    ORDER BY lookup_score DESC, v.featured DESC, v.price ASC
+    LIMIT ?
+  `;
   const result = await db.prepare(sql).bind(...params).all();
   return (result.results || []).map(mapRow);
 }

@@ -26,4 +26,4 @@ export function getProfile(profileType?: string): DeploymentProfile {
   return PROFILES.merchant_advisor;
 }
 
-export type { DeploymentProfile, ProfileType, ProfileFeatures, QuickStartSuggestion, WineClubConfig, GiftingConfig, BrandContent };
+export type { DeploymentProfile, ProfileType, ProfileFeatures, QuickStartSuggestion, BrandContent };

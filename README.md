@@ -17,12 +17,12 @@ client/                   -> Svelte 5 embeddable widget (Vite build -> widget.js
 backend/                  -> Hono + Cloudflare Workers API
 dashboard/                -> Self-contained analytics dashboard UI + read-only API
 Svelte-Component-Library/ -> Reusable UI components (ProductCard, ChatWidget, GuidedFlow, etc.)
-backend/db/               -> D1 schema and seed data (28 demo vehicles)
+backend/db/               -> D1 schema and seed data (52 public-source vehicle snapshots)
 ```
 
 **Infrastructure:**
 - 1 Cloudflare Worker (`dealer-chat-backend`)
-- 1 product D1 database (`vehicle-catalog`) — sole product data source, 28 demo vehicles
+- 1 product D1 database (`vehicle-catalog`) — sole product data source, 52 public-source vehicle snapshots
 - 1 analytics D1 database (`dealer-chat-analytics`) — chat session analytics
 - No vectorization, no embeddings, no cron jobs
 
@@ -30,6 +30,11 @@ backend/db/               -> D1 schema and seed data (28 demo vehicles)
 
 ### Metadata-First Search
 All vehicle search is pure SQL against D1. No vector similarity, no embeddings. Filters map directly to SQL WHERE clauses with a 7-tier fallback cascade. LLM re-ranking fires only when >3 results need ordering.
+
+### Seed Inventory
+`backend/db/seed.sql` is a POC inventory snapshot built from public dealer, marketplace, and CARFAX listing pages researched on July 1, 2026. It covers SUVs, trucks, sedans, hatchbacks, wagons, minivans, vans, coupes, convertibles, EVs, hybrids, diesels, and luxury/performance/commercial use cases. Each row stores its VIN and source URL where available, plus local widget-safe images in `client/public/vehicles`.
+
+Source audit and replacement notes live in [`docs/CATALOG_DATA_SOURCES.md`](docs/CATALOG_DATA_SOURCES.md). Read that before refreshing inventory, because vehicle listings can expire quickly.
 
 ### CODEX Cue System
 The streaming LLM emits trigger phrases when it detects a recommendation-ready query (ANCHOR + 1 REFINER rule). The frontend detects the cue and fires intent extraction → recommendations.
@@ -114,6 +119,7 @@ npm run dev   # --remote flag, writes to QA cloud D1
   type="module"
   src="https://your-domain.com/widget.js"
   data-api="https://dealer-chat-backend.your-account.workers.dev"
+  data-asset-base="https://your-domain.com"
   data-store="mountain-motors"
   data-launcher-label="Open AI Dealer Assistant"
 ></script>

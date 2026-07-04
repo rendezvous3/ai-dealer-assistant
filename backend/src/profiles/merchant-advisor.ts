@@ -23,7 +23,6 @@ export const merchantAdvisorProfile: DeploymentProfile = {
     { label: 'Truck for Work', prompt: 'truck for towing and work use' },
     { label: 'Best Fuel Economy', prompt: 'best fuel economy, hybrid or electric' },
     { label: 'Fun to Drive', prompt: 'something fun to drive, performance focused' },
-    { label: 'Surprise Me', prompt: 'surprise me' },
   ],
   features: {
     dealerLocator: false,

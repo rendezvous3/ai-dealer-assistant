@@ -22,8 +22,8 @@ dashboard/ui
 
 The dashboard supports `lane=qa|prod`. The API resolves D1 bindings in this order:
 
-- QA: `ANALYTICS_DB_QA`, then `ANALYTICS_DB`, then `WINE_DB_QA`, then `WINE_DB`
-- PROD: `ANALYTICS_DB_PROD`, then `ANALYTICS_DB`, then `WINE_DB_PROD`, then `WINE_DB`
+- QA: `ANALYTICS_DB_QA`, then `ANALYTICS_DB`, then `VEHICLES_DB_QA`, then `VEHICLES_DB`
+- PROD: `ANALYTICS_DB_PROD`, then `ANALYTICS_DB`, then `VEHICLES_DB_PROD`, then `VEHICLES_DB`
 
 For a single-lane POC, bind QA and PROD to the same D1 database until separate databases exist.
 

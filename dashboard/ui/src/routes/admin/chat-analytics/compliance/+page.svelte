@@ -414,14 +414,26 @@
 		</div>
 	</div>
 
-	<div class="mb-6 flex gap-1 border-b border-white/[0.07]">
+	<div class="mb-6 flex flex-wrap gap-1 border-b border-white/[0.07]">
 		<a
 			href="/admin/chat-analytics?lane={lane}"
 			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Overview</a
 		>
 		<a
+			href="/admin/chat-analytics/demand?lane={lane}"
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicle Demand</a
+		>
+		<a
+			href="/admin/chat-analytics/product-lookups?lane={lane}"
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicle Lookups</a
+		>
+		<a
+			href="/admin/chat-analytics/general-questions?lane={lane}"
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">General Questions</a
+		>
+		<a
 			href="/admin/chat-analytics/queries?lane={lane}"
-			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Queries</a
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Raw Queries</a
 		>
 		<a
 			href="/admin/chat-analytics/unresolved?lane={lane}"
@@ -429,7 +441,7 @@
 		>
 		<a
 			href="/admin/chat-analytics/products?lane={lane}"
-			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Products</a
+			class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicles</a
 		>
 		<a
 			href="/admin/chat-analytics/sessions?lane={lane}"
@@ -594,13 +606,13 @@
 					<InsightCardV3
 						label="Warning Render"
 						value="{selected.warning_render_rate}%"
-						sub="{selected.warning_rendered_messages.toLocaleString()} / {selected.product_recommendation_messages.toLocaleString()} product messages"
+						sub="{selected.warning_rendered_messages.toLocaleString()} / {selected.product_recommendation_messages.toLocaleString()} vehicle messages"
 						tone={warningTone(selected.warning_render_rate)}
 					/>
 					<InsightCardV3
 						label="Warning Sessions"
 						value="{selected.warning_session_rate}%"
-						sub="{selected.warning_rendered_sessions.toLocaleString()} / {selected.product_recommendation_sessions.toLocaleString()} product sessions"
+						sub="{selected.warning_rendered_sessions.toLocaleString()} / {selected.product_recommendation_sessions.toLocaleString()} vehicle sessions"
 						tone={warningTone(selected.warning_session_rate)}
 					/>
 				</div>
@@ -649,7 +661,7 @@
 				class="rounded-xl border border-white/[0.07] bg-[#111111] px-5 py-3 text-xs leading-5 text-[#737373]"
 			>
 				`warning_index` is currently always variant 0; warning rotation is not implemented yet.
-				Output drift rows that match allowed wine guidance or crisis-resource text should be
+				Output drift rows that match allowed vehicle guidance or crisis-resource text should be
 				reviewed before treating them as true drift.
 			</div>
 

@@ -19,13 +19,51 @@
   import { theme } from "./theme.svelte.js";
   import { CAR_EDUCATION_PANELS } from './car-education';
 
-  import chatIcon from "./icons/assistant/chat.png";
+  const dealerHeaderIcon = `data:image/svg+xml,${encodeURIComponent(`
+    <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 56L27 38C28.6 33.8 32.6 31.2 37.1 31.2H58.9C63.4 31.2 67.4 33.8 69 38L76 56" stroke="#38BDF8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M19 55H77V67.5C77 70.8 74.3 73.5 71 73.5H66.8C63.5 73.5 60.8 70.8 60.8 67.5V66.5H35.2V67.5C35.2 70.8 32.5 73.5 29.2 73.5H25C21.7 73.5 19 70.8 19 67.5V55Z" fill="#38BDF8"/>
+      <circle cx="32" cy="63" r="5.8" fill="#0B1220"/>
+      <circle cx="64" cy="63" r="5.8" fill="#0B1220"/>
+      <path d="M36.5 40H59.5C61.8 40 63.8 41.4 64.7 43.5L67.1 49.4H28.9L31.3 43.5C32.2 41.4 34.2 40 36.5 40Z" fill="#0B1220"/>
+      <path d="M39 23H57" stroke="#F59E0B" stroke-width="5" stroke-linecap="round"/>
+      <path d="M25 29H32" stroke="#E0F2FE" stroke-width="4" stroke-linecap="round"/>
+      <path d="M64 29H71" stroke="#E0F2FE" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  `)}`;
 
-  // Car SVG icons (inline for POC — no external icon files needed)
-  const conditionNewIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="12" width="24" height="16" rx="3" fill="#2563EB"/><path d="M11 12L14 7H26L29 12" stroke="#2563EB" stroke-width="1.5"/><circle cx="14" cy="28" r="3" fill="#1E3A8A"/><circle cx="26" cy="28" r="3" fill="#1E3A8A"/></svg>';
-  const conditionUsedIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="12" width="24" height="16" rx="3" fill="#64748B"/><path d="M11 12L14 7H26L29 12" stroke="#64748B" stroke-width="1.5"/><circle cx="14" cy="28" r="3" fill="#334155"/><circle cx="26" cy="28" r="3" fill="#334155"/></svg>';
-  const conditionCpoIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="12" width="24" height="16" rx="3" fill="#059669"/><path d="M11 12L14 7H26L29 12" stroke="#059669" stroke-width="1.5"/><circle cx="14" cy="28" r="3" fill="#065F46"/><circle cx="26" cy="28" r="3" fill="#065F46"/><path d="M17 20L19 22L23 18" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>';
-  const conditionSurpriseIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="2"/><text x="20" y="26" text-anchor="middle" fill="currentColor" font-size="18" font-weight="bold">?</text></svg>';
+  const dealerSteeringWheelIcon = `data:image/svg+xml,${encodeURIComponent(`
+    <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="48" cy="48" r="34" stroke="#0B1220" stroke-width="7"/>
+      <circle cx="48" cy="48" r="9" fill="#0B1220"/>
+      <path d="M20 48C27.5 43.6 37.8 41.2 48 41.2C58.2 41.2 68.5 43.6 76 48" stroke="#0B1220" stroke-width="7" stroke-linecap="round"/>
+      <path d="M42.5 55.5L31.5 74.5" stroke="#0B1220" stroke-width="7" stroke-linecap="round"/>
+      <path d="M53.5 55.5L64.5 74.5" stroke="#0B1220" stroke-width="7" stroke-linecap="round"/>
+      <path d="M38 24H58" stroke="#F59E0B" stroke-width="5" stroke-linecap="round"/>
+      <path d="M26 37H33" stroke="#E0F2FE" stroke-width="4" stroke-linecap="round"/>
+      <path d="M63 37H70" stroke="#E0F2FE" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+  `)}`;
+
+  // Car SVG icons used where compact symbolic state is clearer than photos.
+  const conditionUsedIcon = '<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="7" y="18" width="34" height="15" rx="4" fill="#334155"/><path d="M12 18L16 10H32L36 18" stroke="#64748B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 23H32" stroke="#CBD5E1" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="33" r="4" fill="#0F172A"/><circle cx="32" cy="33" r="4" fill="#0F172A"/><path d="M11 14H15" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  const conditionCpoIcon = '<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="7" y="18" width="34" height="15" rx="4" fill="#0F766E"/><path d="M12 18L16 10H32L36 18" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="33" r="4" fill="#134E4A"/><circle cx="32" cy="33" r="4" fill="#134E4A"/><circle cx="24" cy="23" r="7" fill="#ECFEFF"/><path d="M20.5 23L23 25.5L28 20.5" stroke="#0F766E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const commuteIcon = '<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M8 27H36L32 17C31.2 15 29.4 14 27.3 14H16.7C14.6 14 12.8 15 12 17L8 27Z" stroke="#38BDF8" stroke-width="2.5" stroke-linejoin="round"/><path d="M13 27V31H31V27" stroke="#94A3B8" stroke-width="2.5"/><circle cx="15" cy="31" r="3" fill="#38BDF8"/><circle cx="29" cy="31" r="3" fill="#38BDF8"/><path d="M18 10H26" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  const familyIcon = '<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><rect x="8" y="15" width="28" height="17" rx="4" stroke="#38BDF8" stroke-width="2.5"/><path d="M13 15L16 10H28L31 15" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="32" r="3" fill="#38BDF8"/><circle cx="28" cy="32" r="3" fill="#38BDF8"/><path d="M16 23H28M22 19V27" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  const adventureIcon = '<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M8 30L17 17L24 26L29 20L37 30H8Z" stroke="#38BDF8" stroke-width="2.5" stroke-linejoin="round"/><path d="M14 31H30" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/><path d="M26 12L29 9L32 12" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const commercialIcon = '<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><rect x="7" y="17" width="19" height="14" rx="2.5" stroke="#38BDF8" stroke-width="2.5"/><path d="M26 22H33L37 27V31H26V22Z" stroke="#94A3B8" stroke-width="2.5" stroke-linejoin="round"/><circle cx="14" cy="32" r="3" fill="#38BDF8"/><circle cx="32" cy="32" r="3" fill="#38BDF8"/><path d="M12 13H23" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  const performanceIcon = '<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M9 28C10.5 19 15.2 14 22 14C28.8 14 33.5 19 35 28" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/><path d="M22 25L30 17" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/><path d="M13 29H31" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  const ecoIcon = '<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><path d="M12 30C26 30 33 21 34 10C22 11 12 17 12 30Z" stroke="#2DD4BF" stroke-width="2.5" stroke-linejoin="round"/><path d="M12 30C18 24 23 21 31 18" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/><path d="M8 32H20" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/></svg>';
+  const safetyIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M20 6L31 10V18C31 25.5 26.4 31 20 34C13.6 31 9 25.5 9 18V10L20 6Z" stroke="#38BDF8" stroke-width="2.3" stroke-linejoin="round"/><path d="M16 20L19 23L25 16" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const fuelIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M12 32V8H24V32H12Z" stroke="#38BDF8" stroke-width="2.3" stroke-linejoin="round"/><path d="M24 14H28L31 18V30C31 31.1 30.1 32 29 32H27" stroke="#94A3B8" stroke-width="2.3" stroke-linecap="round"/><path d="M15 15H21" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round"/></svg>';
+  const cargoIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="13" width="24" height="17" rx="3" stroke="#38BDF8" stroke-width="2.3"/><path d="M14 13V10H26V13M14 20H26" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round"/></svg>';
+  const towingIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="7" y="17" width="18" height="11" rx="2" stroke="#38BDF8" stroke-width="2.3"/><path d="M25 22H31L34 25V28H25V22Z" stroke="#94A3B8" stroke-width="2.3" stroke-linejoin="round"/><circle cx="13" cy="29" r="2.5" fill="#F59E0B"/><circle cx="30" cy="29" r="2.5" fill="#F59E0B"/></svg>';
+  const techIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="11" y="8" width="18" height="24" rx="3" stroke="#38BDF8" stroke-width="2.3"/><path d="M16 14H24M16 20H24M18 27H22" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round"/></svg>';
+  const reliabilityIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M13 26L26 13" stroke="#38BDF8" stroke-width="2.3" stroke-linecap="round"/><path d="M24 8L32 16L27 21L19 13L24 8Z" stroke="#94A3B8" stroke-width="2.3" stroke-linejoin="round"/><path d="M12 27L9 31" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round"/></svg>';
+  const powerIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M20 7L14 21H20L18 33L27 17H21L20 7Z" stroke="#F59E0B" stroke-width="2.3" stroke-linejoin="round"/><path d="M10 30H30" stroke="#38BDF8" stroke-width="2.3" stroke-linecap="round"/></svg>';
+  const luxuryIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M20 7L24 16L34 17L26.5 23.5L28.5 33L20 28L11.5 33L13.5 23.5L6 17L16 16L20 7Z" stroke="#38BDF8" stroke-width="2.3" stroke-linejoin="round"/><path d="M16 20H24" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round"/></svg>';
+  const valueIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M9 17L20 8L31 17V31H9V17Z" stroke="#38BDF8" stroke-width="2.3" stroke-linejoin="round"/><path d="M16 23H24M20 19V27" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round"/></svg>';
+  const comfortIcon = '<svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M10 23C10 18 14 14 20 14C26 14 30 18 30 23V30H10V23Z" stroke="#38BDF8" stroke-width="2.3" stroke-linejoin="round"/><path d="M14 23H26" stroke="#F59E0B" stroke-width="2.3" stroke-linecap="round"/></svg>';
   const guideMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 7H14M6 10H14M6 13H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
   const carMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="9" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 7L7 3H13L15 7" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="16" r="2" fill="currentColor"/><circle cx="14" cy="16" r="2" fill="currentColor"/></svg>';
   const dollarMenuIcon = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 6V14M8 8.5C8 7.67 8.9 7 10 7C11.1 7 12 7.67 12 8.5C12 9.33 11.1 10 10 10C8.9 10 8 10.67 8 11.5C8 12.33 8.9 13 10 13C11.1 13 12 12.33 12 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
@@ -35,6 +73,7 @@
   interface WidgetProps {
     store?: string;
     apiBase?: string;
+    assetBase?: string;
     position?: WidgetPosition;
     offsetX?: string;
     offsetY?: string;
@@ -52,9 +91,11 @@
 
   const envStoreName = import.meta.env.VITE_STORE_NAME;
   const envApiBase = import.meta.env.VITE_API_URL;
+  const envAssetBase = import.meta.env.VITE_ASSET_BASE;
   let {
     store = envStoreName ?? window.location.hostname ?? "demo-store",
     apiBase = envApiBase ?? "http://localhost:8787",
+    assetBase = envAssetBase ?? '',
     position = 'bottom-right',
     offsetX = '20px',
     offsetY = '20px',
@@ -75,6 +116,25 @@
 
   let BASE_URL = $derived(apiBase.replace(/\/chat\/?$/, "").replace(/\/$/, ""));
   let CHAT_BASE_URL = $derived(`${BASE_URL}/chat`);
+
+  function assetUrl(path: string): string {
+    const base = (assetBase ?? '').replace(/\/+$/, '');
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${base}${normalizedPath}`;
+  }
+
+  function normalizeAssetImageUrl(url?: string): string {
+    const trimmed = url?.trim();
+    if (!trimmed) return '';
+    if (/^(https?:)?\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+      return trimmed;
+    }
+    return assetUrl(trimmed);
+  }
+
+  function vehiclePhotoIcon(path: string, alt: string): string {
+    return `<img src="${assetUrl(path)}" alt="${alt}" loading="lazy" decoding="async" />`;
+  }
 
   let isInitialized = $state(false);
 
@@ -133,6 +193,7 @@
 
   interface Recommendation {
     id: string;
+    vin?: string;
     year?: number;
     make?: string;
     model?: string;
@@ -147,6 +208,7 @@
     msrp?: number;
     image?: string;
     image_url?: string;
+    source_name?: string;
     source_url?: string;
     description?: string;
     key_features?: string[];
@@ -459,7 +521,6 @@
     { label: 'Truck for Work or Adventure', prompt: 'need a truck for work and outdoor adventures' },
     { label: 'Best Fuel Economy', prompt: 'what has the best fuel economy' },
     { label: 'Something Fun to Drive', prompt: 'something fun and sporty to drive' },
-    { label: 'Surprise Me', prompt: 'surprise me' },
   ];
   let popularRequests = $derived<QuickStartRequest[]>(
     profileConfig?.quickStartSuggestions ?? defaultQuickStarts
@@ -867,7 +928,7 @@
   function convertToProducts(recommendations: Recommendation[]) {
     return recommendations.map((rec, index) => ({
       id: rec.id,
-      image: rec.image_url || rec.image || '',
+      image: normalizeAssetImageUrl(rec.image_url || rec.image),
       title: [rec.year, rec.make, rec.model, rec.trim].filter(Boolean).join(' '),
       price: rec.price != null && !isNaN(rec.price) ? rec.price : 0,
       originalPrice: rec.msrp,
@@ -875,6 +936,7 @@
       discount: undefined,
       category: rec.body_type,
       shopLink: rec.source_url,
+      brand: rec.dealer_name || rec.make,
       make: rec.make,
       model: rec.model,
       year: rec.year,
@@ -890,6 +952,8 @@
       use_case_tags: rec.use_case_tags,
       priority_tags: rec.priority_tags,
       dealer_name: rec.dealer_name,
+      vin: rec.vin,
+      source_name: rec.source_name,
       rankPosition: index + 1
     }));
   }
@@ -958,11 +1022,13 @@
     id: 'condition',
     title: 'What are you shopping for?',
     type: 'single-select' as const,
+    customStyles: {
+      iconSize: '50px',
+      minHeight: '78px'
+    },
     options: [
-      { id: 'new', label: 'New', value: 'new', icon: conditionNewIcon },
       { id: 'used', label: 'Used / Pre-Owned', value: 'used', icon: conditionUsedIcon },
-      { id: 'cpo', label: 'Certified Pre-Owned', value: 'cpo', icon: conditionCpoIcon },
-      { id: 'surprise', label: 'Surprise Me', value: null, icon: conditionSurpriseIcon }
+      { id: 'cpo', label: 'Certified Pre-Owned', value: 'cpo', icon: conditionCpoIcon }
     ]
   };
 
@@ -970,13 +1036,19 @@
     id: 'use_case',
     title: 'What do you primarily need it for?',
     type: 'single-select' as const,
+    customStyles: {
+      iconSize: '44px',
+      minHeight: '124px',
+      padding: '18px 10px',
+      fontSize: '13px'
+    },
     options: [
-      { id: 'commuter', label: 'Daily Commuting', value: 'commuter' },
-      { id: 'family', label: 'Family Hauling', value: 'family' },
-      { id: 'adventure', label: 'Weekend Adventures / Outdoors', value: 'adventure' },
-      { id: 'commercial', label: 'Work / Commercial Use', value: 'commercial' },
-      { id: 'performance', label: 'Performance Driving', value: 'performance' },
-      { id: 'eco', label: 'Best Fuel Economy / Eco', value: 'eco' }
+      { id: 'commuter', label: 'Daily Commuting', value: 'commuter', icon: commuteIcon },
+      { id: 'family', label: 'Family Hauling', value: 'family', icon: familyIcon },
+      { id: 'adventure', label: 'Weekend Adventures / Outdoors', value: 'adventure', icon: adventureIcon },
+      { id: 'commercial', label: 'Work / Commercial Use', value: 'commercial', icon: commercialIcon },
+      { id: 'performance', label: 'Performance Driving', value: 'performance', icon: performanceIcon },
+      { id: 'eco', label: 'Best Fuel Economy / Eco', value: 'eco', icon: ecoIcon }
     ]
   };
 
@@ -984,13 +1056,22 @@
     id: 'body_type',
     title: 'What body style?',
     type: 'single-select' as const,
+    customStyles: {
+      iconSize: '76px',
+      minHeight: '142px',
+      padding: '14px 8px',
+      fontSize: '13px'
+    },
     options: [
-      { id: 'suv', label: 'SUV / Crossover', value: 'suv' },
-      { id: 'truck', label: 'Truck', value: 'truck' },
-      { id: 'sedan', label: 'Sedan', value: 'sedan' },
-      { id: 'hatchback', label: 'Hatchback / Wagon', value: 'hatchback' },
-      { id: 'minivan', label: 'Minivan', value: 'minivan' },
-      { id: 'coupe', label: 'Coupe / Convertible', value: 'coupe' }
+      { id: 'suv', label: 'SUV / Crossover', value: 'suv', icon: vehiclePhotoIcon('/vehicles/kia-telluride-s.jpg', 'SUV') },
+      { id: 'truck', label: 'Truck / Pickup', value: 'truck', icon: vehiclePhotoIcon('/vehicles/ford-f150-lariat.jpg', 'Truck') },
+      { id: 'sedan', label: 'Sedan', value: 'sedan', icon: vehiclePhotoIcon('/vehicles/bmw-330i.jpg', 'Sedan') },
+      { id: 'hatchback', label: 'Hatchback', value: 'hatchback', icon: vehiclePhotoIcon('/vehicles/toyota-prius-le.jpg', 'Hatchback') },
+      { id: 'wagon', label: 'Wagon', value: 'wagon', icon: vehiclePhotoIcon('/vehicles/volvo-v60.jpg', 'Wagon') },
+      { id: 'minivan', label: 'Minivan', value: 'minivan', icon: vehiclePhotoIcon('/vehicles/toyota-sienna-xle.jpg', 'Minivan') },
+      { id: 'van', label: 'Work Van', value: 'van', icon: vehiclePhotoIcon('/vehicles/ford-transit-xlt.jpg', 'Work van') },
+      { id: 'coupe', label: 'Coupe', value: 'coupe', icon: vehiclePhotoIcon('/vehicles/ford-mustang-gt.jpg', 'Coupe') },
+      { id: 'convertible', label: 'Convertible', value: 'convertible', icon: vehiclePhotoIcon('/vehicles/mazda-miata-grand-touring.jpg', 'Convertible') }
     ]
   };
 
@@ -999,15 +1080,23 @@
     title: 'What matters most to you?',
     type: 'multi-select' as const,
     maxSelections: 2,
+    customStyles: {
+      iconSize: '40px',
+      minHeight: '118px',
+      padding: '18px 10px',
+      fontSize: '12px'
+    },
     options: [
-      { id: 'safety', label: 'Safety Ratings', value: 'safety' },
-      { id: 'fuel-economy', label: 'Fuel Economy / Range', value: 'fuel-economy' },
-      { id: 'cargo', label: 'Cargo / Passenger Space', value: 'cargo' },
-      { id: 'towing', label: 'Towing Capacity', value: 'towing' },
-      { id: 'tech', label: 'Tech & Connectivity', value: 'tech' },
-      { id: 'reliability', label: 'Reliability / Low Maintenance', value: 'reliability' },
-      { id: 'performance', label: 'Performance / Power', value: 'performance' },
-      { id: 'luxury', label: 'Luxury / Comfort', value: 'luxury' }
+      { id: 'safety', label: 'Safety Ratings', value: 'safety', icon: safetyIcon },
+      { id: 'fuel-economy', label: 'Fuel Economy / Range', value: 'fuel-economy', icon: fuelIcon },
+      { id: 'cargo', label: 'Cargo / Passenger Space', value: 'cargo', icon: cargoIcon },
+      { id: 'towing', label: 'Towing Capacity', value: 'towing', icon: towingIcon },
+      { id: 'tech', label: 'Tech & Connectivity', value: 'tech', icon: techIcon },
+      { id: 'reliability', label: 'Reliability / Low Maintenance', value: 'reliability', icon: reliabilityIcon },
+      { id: 'performance', label: 'Performance / Power', value: 'performance', icon: powerIcon },
+      { id: 'luxury', label: 'Luxury / Premium Feel', value: 'luxury', icon: luxuryIcon },
+      { id: 'value', label: 'Best Value / Deal', value: 'value', icon: valueIcon },
+      { id: 'comfort', label: 'Comfort / Quiet Ride', value: 'comfort', icon: comfortIcon }
     ]
   };
 
@@ -1223,7 +1312,7 @@
           ...messages.slice(0, shimmerIndex),
           {
             role: "assistant",
-            content: "I couldn't find any products matching those exact specifications. Try adjusting your preferences, or feel free to ask me about specific products!",
+            content: "I couldn't find any vehicles matching those exact specifications. Try adjusting your preferences, or ask me about a specific vehicle.",
             analyticsMessageId: analyticsContext.message_id
           },
           ...messages.slice(shimmerIndex + 1)
@@ -1297,7 +1386,7 @@
         const errorData = await lookupResp.json().catch(() => ({}));
         console.error('[Product Lookup] API error:', errorData);
         // Show error message directly
-        messages = [...messages, createMessage("assistant", errorData.error || "I couldn't find that product. Would you like me to search for recommendations?")];
+        messages = [...messages, createMessage("assistant", errorData.error || "I couldn't find that vehicle. Would you like me to search for recommendations?")];
         return;
       }
 
@@ -1324,7 +1413,7 @@
       } else {
         // No match - offer to search for recommendations
         if (debug) console.log('[Product Lookup] No match found');
-        messages = [...messages, createMessage("assistant", "I couldn't find that product in our inventory. Would you like me to search for recommendations?")];
+        messages = [...messages, createMessage("assistant", "I couldn't find that vehicle in our inventory. Would you like me to search for recommendations?")];
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
@@ -1332,7 +1421,7 @@
         return;
       }
       console.error('[Product Lookup] Failed:', err);
-      messages = [...messages, createMessage("assistant", "I'm having trouble finding that product right now. Could you tell me more about what you're looking for?")];
+      messages = [...messages, createMessage("assistant", "I'm having trouble finding that vehicle right now. Could you tell me more about what you're looking for?")];
     } finally {
       productLookupInProgress = false;
       currentLookupController = null;
@@ -1477,8 +1566,10 @@
           mileage: product.mileage,
           price: product.price || 0,
           msrp: product.msrp,
-          image: product.image_url || (product as any).image || '',
-          image_url: product.image_url || (product as any).image || '',
+          image: normalizeAssetImageUrl(product.image_url || (product as any).image),
+          image_url: normalizeAssetImageUrl(product.image_url || (product as any).image),
+          vin: product.vin,
+          source_name: product.source_name,
           source_url: (product as any).shop_link || product.source_url || '',
           description: product.description || '',
           key_features: product.key_features,
@@ -1938,10 +2029,10 @@
           messages = [
             ...messages.slice(0, shimmerIndex),
             {
-              role: "assistant",
-              content: "I couldn't find any products matching those exact specifications. Try adjusting your preferences, or feel free to ask me about specific products!",
-              analyticsMessageId: analyticsContext.message_id
-            },
+            role: "assistant",
+            content: "I couldn't find any vehicles matching those exact specifications. Try adjusting your preferences, or ask me about a specific vehicle.",
+            analyticsMessageId: analyticsContext.message_id
+          },
             ...messages.slice(shimmerIndex + 1)
           ];
         }
@@ -1978,11 +2069,6 @@
   }
 </script>
 
-<!-- Replace UI with ChatWidget from Component Library -->
-<!-- background colors: "#0dcc218f" "#14c3268f" "#15685E" #F4C37D #6ed39f80 "#8aff5ec9" "#50ff5a8f "#1ba4298f" "#1e8e298f" "#14c3268f" -->
- <!-- First one is beautiful #70CCC1 #61CE70  -->
- <!-- Cannavita Colors - green hints: #70CCC1 #15685E #033D36 #03302B #022622 -->
-  <!-- Cannavita Colors - gold Hints: #FAE4C4 #F8D9AC #F4C37D #BD9760 #A38253 #F4C37  -->
 <ChatWidget
   isOpen={isOpen}
   onToggle={toggleWidget}
@@ -1996,11 +2082,18 @@
   menuMode="sidebar"
   onMenuItemClick={handleMenuItemClick}
   title="Car Assistant"
-  themeBackgroundColor="#F4C37D"
-  iconSrc={chatIcon}
-  launcherIconSrc={launcherIcon}
+  themeBackgroundColor="#38BDF8"
+  iconSrc={dealerHeaderIcon}
+  launcherIconSrc={launcherIcon ?? dealerSteeringWheelIcon}
+  launcherButtonSize="78px"
+  launcherIconSize="44px"
+  launcherPulse={true}
+  launcherCalloutText="Find your next car"
+  launcherCalloutAutoShow={true}
+  launcherCalloutDelayMs={900}
+  launcherCalloutAnimationMs={850}
   launcherAriaLabel={launcherLabel}
-  launcherButtonBackgroundColor={launcherBg}
+  launcherButtonBackgroundColor={launcherBg ?? 'radial-gradient(circle at 50% 38%, #7DD3FC 0%, #38BDF8 58%, #0284C7 100%)'}
   hideLauncher={hideLauncher}
   {offsetX}
   {offsetY}
@@ -2070,7 +2163,7 @@
             {#each [comparisonData.vehicle1, comparisonData.vehicle2] as v}
               <div class="vehicle-comparison__card">
                 {#if v.image_url}
-                  <img src={v.image_url} alt="{v.year} {v.make} {v.model}" class="vehicle-comparison__image" />
+                  <img src={normalizeAssetImageUrl(v.image_url)} alt="{v.year} {v.make} {v.model}" class="vehicle-comparison__image" />
                 {/if}
                 <div class="vehicle-comparison__info">
                   <div class="vehicle-comparison__title">{[v.year, v.make, v.model, v.trim].filter(Boolean).join(' ')}</div>
@@ -2473,7 +2566,7 @@
   }
   .vehicle-comparison__card {
     background: rgba(255, 255, 255, 0.6);
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     display: flex;
     flex-direction: column;

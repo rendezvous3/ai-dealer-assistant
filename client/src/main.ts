@@ -42,6 +42,7 @@ declare global {
 }
 
 const DEFAULT_API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8787/chat';
+const DEFAULT_ASSET_BASE = import.meta.env.VITE_ASSET_BASE ?? '';
 const DEFAULT_STORE =
   import.meta.env.VITE_STORE_NAME ?? window.location.hostname ?? 'demo-store';
 
@@ -126,6 +127,7 @@ function mountWidget(): WidgetHostApi {
   const config = parseEmbedConfig({
     script,
     defaultApiBase: DEFAULT_API_BASE,
+    defaultAssetBase: DEFAULT_ASSET_BASE,
     defaultStore: DEFAULT_STORE,
   });
 
@@ -155,6 +157,7 @@ function mountWidget(): WidgetHostApi {
     props: {
       store: config.store,
       apiBase: config.apiBase,
+      assetBase: config.assetBase,
       position: config.position,
       offsetX: config.offsetX,
       offsetY: config.offsetY,
@@ -193,6 +196,7 @@ function mountWidget(): WidgetHostApi {
   dispatchWidgetLifecycleEvent(WIDGET_READY_EVENT, {
     store: config.store,
     apiBase: config.apiBase,
+    assetBase: config.assetBase,
   });
 
   return api;

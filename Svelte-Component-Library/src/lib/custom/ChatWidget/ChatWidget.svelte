@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { setContext } from 'svelte';
+  import { onMount, setContext } from 'svelte';
   import WidgetIcon from '../WidgetIcon/WidgetIcon.svelte';
   import ChatHeader from '../ChatHeader/ChatHeader.svelte';
   import ChatWindow from '../ChatWindow/ChatWindow.svelte';
@@ -37,7 +37,15 @@
     headerBackgroundColor?: string;
     widgetButtonBackgroundColor?: string;
     launcherButtonBackgroundColor?: string;
+    launcherButtonSize?: string;
+    launcherButtonRadius?: string;
     launcherIconSrc?: string;
+    launcherIconSize?: string;
+    launcherPulse?: boolean;
+    launcherCalloutText?: string;
+    launcherCalloutAutoShow?: boolean;
+    launcherCalloutDelayMs?: number;
+    launcherCalloutAnimationMs?: number;
     launcherAriaLabel?: string;
     hideLauncher?: boolean;
     offsetX?: string;
@@ -87,7 +95,15 @@
     headerBackgroundColor,
     widgetButtonBackgroundColor,
     launcherButtonBackgroundColor,
+    launcherButtonSize = '60px',
+    launcherButtonRadius,
     launcherIconSrc,
+    launcherIconSize,
+    launcherPulse = false,
+    launcherCalloutText,
+    launcherCalloutAutoShow = false,
+    launcherCalloutDelayMs = 600,
+    launcherCalloutAnimationMs = 800,
     launcherAriaLabel = 'Open chat widget',
     hideLauncher = false,
     offsetX = '20px',
@@ -143,6 +159,7 @@
   let previouslyFocusedElement: HTMLElement | null = $state(null);
   let wasWidgetOpen = $state(false);
   let launcherIconFailed = $state(false);
+  let launcherCalloutVisible = $state(false);
   
   // If onToggle is provided, we're in controlled mode - use prop directly
   // Otherwise use internal state
@@ -156,6 +173,7 @@
       isWidgetOpen && 'chat-widget--open',
       isExpanded && 'chat-widget--expanded',
       darkMode && 'chat-widget--dark',
+      launcherPulse && !isWidgetOpen && 'chat-widget--launcher-pulse',
       `chat-widget--header-${headerStyle}`
     ]
       .filter(Boolean)
@@ -169,11 +187,31 @@
       `--chat-widget-offset-y: ${offsetY};`,
       `--chat-widget-window-width: ${windowWidth};`,
       `--chat-widget-window-height: ${windowHeight};`,
-      `--chat-widget-button-bg: ${launcherButtonBackgroundColor ?? widgetButtonBackgroundColor ?? themeBackgroundColor ?? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'};`
+      `--chat-widget-button-size: ${launcherButtonSize};`,
+      `--chat-widget-button-bg: ${launcherButtonBackgroundColor ?? widgetButtonBackgroundColor ?? themeBackgroundColor ?? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'};`,
+      launcherButtonRadius ? `--chat-widget-button-radius: ${launcherButtonRadius};` : '',
+      launcherIconSize ? `--chat-widget-launcher-image-size: ${launcherIconSize};` : '',
+      `--chat-widget-launcher-callout-animation-duration: ${Math.max(0, launcherCalloutAnimationMs)}ms;`
     ].join(' ')
   );
 
+  onMount(() => {
+    if (!launcherCalloutText || !launcherCalloutAutoShow || hideLauncher) return;
+    const timeout = window.setTimeout(() => {
+      launcherCalloutVisible = true;
+    }, Math.max(0, launcherCalloutDelayMs));
+
+    return () => window.clearTimeout(timeout);
+  });
+
+  $effect(() => {
+    if (isWidgetOpen) {
+      launcherCalloutVisible = false;
+    }
+  });
+
   function toggleWidget() {
+    launcherCalloutVisible = false;
     if (!isWidgetOpen && typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
       previouslyFocusedElement = document.activeElement;
     }
@@ -262,6 +300,11 @@
 
   function handleLauncherIconError() {
     launcherIconFailed = true;
+  }
+
+  function dismissLauncherCallout(event: MouseEvent) {
+    event.stopPropagation();
+    launcherCalloutVisible = false;
   }
 
   $effect(() => {
@@ -401,12 +444,48 @@
   {/if}
   
   {#if !hideLauncher}
+    {#if launcherCalloutText && launcherCalloutVisible && !isWidgetOpen}
+      <div class="chat-widget__launcher-callout" role="group" aria-label="Chat prompt">
+        <button
+          class="chat-widget__launcher-callout-action"
+          type="button"
+          onclick={toggleWidget}
+        >
+          {launcherCalloutText}
+        </button>
+        <button
+          class="chat-widget__launcher-callout-close"
+          type="button"
+          aria-label="Dismiss chat prompt"
+          onclick={dismissLauncherCallout}
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              d="M18 6L6 18M6 6L18 18"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+    {/if}
+
     <button
       bind:this={widgetButtonRef}
       class="chat-widget__button"
       onclick={toggleWidget}
       aria-label={isWidgetOpen ? 'Close chat' : launcherAriaLabel}
       aria-expanded={isWidgetOpen}
+      aria-haspopup="dialog"
       type="button"
     >
       {#if isWidgetOpen}
@@ -452,6 +531,9 @@
     position: fixed;
     z-index: var(--chat-widget-z-index, 2147483000);
     --chat-widget-button-size: 60px;
+    --chat-widget-button-radius: 50%;
+    --chat-widget-launcher-icon-size: clamp(24px, calc(var(--chat-widget-button-size, 60px) * 0.42), 44px);
+    --chat-widget-launcher-image-size: clamp(44px, calc(var(--chat-widget-button-size, 60px) * 0.72), 72px);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
@@ -481,7 +563,7 @@
     position: relative;
     width: var(--chat-widget-button-size);
     height: var(--chat-widget-button-size);
-    border-radius: 50%;
+    border-radius: var(--chat-widget-button-radius);
     background: var(--chat-widget-button-bg, linear-gradient(135deg, #3b82f6 0%, #2563eb 100%));
     border: none;
     box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -489,9 +571,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     color: #ffffff;
     padding: 0;
+    overflow: visible;
+  }
+
+  .chat-widget--launcher-pulse:not(.chat-widget--open) .chat-widget__button {
+    animation: chat-widget-launcher-pulse 2.8s ease-in-out infinite;
   }
 
   .chat-widget__button:hover {
@@ -508,11 +595,164 @@
     outline-offset: 4px;
   }
 
+  .chat-widget__button > svg,
+  .chat-widget__button :global(.widget-icon),
+  .chat-widget__button :global(.widget-icon svg) {
+    width: var(--chat-widget-launcher-icon-size);
+    height: var(--chat-widget-launcher-icon-size);
+  }
+
   .chat-widget__launcher-icon {
-    width: 24px;
-    height: 24px;
+    width: var(--chat-widget-launcher-image-size);
+    height: var(--chat-widget-launcher-image-size);
     object-fit: contain;
     display: block;
+    border-radius: var(--chat-widget-button-radius);
+    pointer-events: none;
+  }
+
+  .chat-widget__launcher-callout {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: min(230px, calc(100vw - var(--chat-widget-button-size) - var(--chat-widget-offset-x, 20px) - 24px));
+    max-width: min(292px, calc(100vw - var(--chat-widget-button-size) - var(--chat-widget-offset-x, 20px) - 24px));
+    min-height: calc(var(--chat-widget-button-size) * 0.58);
+    padding: 6px 7px 6px 13px;
+    background: var(--chat-widget-button-bg, #38BDF8);
+    color: #082F49;
+    border-radius: 999px;
+    box-shadow: 0 9px 18px rgba(0, 0, 0, 0.18), 0 3px 8px rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
+    isolation: isolate;
+    opacity: 0;
+    transform: translateY(12px) scaleX(0.72);
+    animation: chat-widget-callout-in var(--chat-widget-launcher-callout-animation-duration, 800ms) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .chat-widget--bottom-left .chat-widget__launcher-callout {
+    bottom: calc(var(--chat-widget-button-size) - 4px);
+    left: calc(var(--chat-widget-button-size) - 2px);
+    transform-origin: left bottom;
+  }
+
+  .chat-widget--bottom-right .chat-widget__launcher-callout {
+    bottom: calc(var(--chat-widget-button-size) - 4px);
+    right: calc(var(--chat-widget-button-size) - 2px);
+    transform-origin: right bottom;
+  }
+
+  .chat-widget--top-left .chat-widget__launcher-callout {
+    top: calc(var(--chat-widget-button-size) - 4px);
+    left: calc(var(--chat-widget-button-size) - 2px);
+    transform-origin: left top;
+  }
+
+  .chat-widget--top-right .chat-widget__launcher-callout {
+    top: calc(var(--chat-widget-button-size) - 4px);
+    right: calc(var(--chat-widget-button-size) - 2px);
+    transform-origin: right top;
+  }
+
+  .chat-widget__launcher-callout::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: 18px;
+    height: 16px;
+    background: var(--chat-widget-button-bg, #38BDF8);
+    border-radius: 2px;
+  }
+
+  .chat-widget--bottom-left .chat-widget__launcher-callout::before {
+    left: -6px;
+    bottom: 1px;
+    clip-path: polygon(0 100%, 100% 18%, 100% 80%);
+  }
+
+  .chat-widget--bottom-right .chat-widget__launcher-callout::before {
+    right: -6px;
+    bottom: 1px;
+    clip-path: polygon(100% 100%, 0 18%, 0 80%);
+  }
+
+  .chat-widget--top-left .chat-widget__launcher-callout::before {
+    left: -6px;
+    top: 1px;
+    clip-path: polygon(0 0, 100% 20%, 100% 82%);
+  }
+
+  .chat-widget--top-right .chat-widget__launcher-callout::before {
+    right: -6px;
+    top: 1px;
+    clip-path: polygon(100% 0, 0 20%, 0 82%);
+  }
+
+  .chat-widget__launcher-callout-action,
+  .chat-widget__launcher-callout-close {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .chat-widget__launcher-callout-action {
+    min-width: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font-size: clamp(13px, calc(var(--chat-widget-button-size) * 0.23), 17px);
+    line-height: 1.15;
+    text-align: left;
+    white-space: nowrap;
+    letter-spacing: 0;
+  }
+
+  .chat-widget__launcher-callout-close {
+    flex: 0 0 auto;
+    width: clamp(22px, calc(var(--chat-widget-button-size) * 0.32), 27px);
+    height: clamp(22px, calc(var(--chat-widget-button-size) * 0.32), 27px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: #082F49;
+    padding: 0;
+  }
+
+  .chat-widget__launcher-callout-action:focus-visible,
+  .chat-widget__launcher-callout-close:focus-visible {
+    outline: 3px solid rgba(8, 47, 73, 0.35);
+    outline-offset: 3px;
+  }
+
+  @keyframes chat-widget-launcher-pulse {
+    0%, 72%, 100% {
+      transform: scale(1);
+      box-shadow: 0 8px 24px rgba(56, 189, 248, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 0 rgba(56, 189, 248, 0);
+    }
+    18% {
+      transform: scale(1.045);
+      box-shadow: 0 10px 26px rgba(56, 189, 248, 0.34), 0 5px 14px rgba(0, 0, 0, 0.16), 0 0 0 7px rgba(56, 189, 248, 0.22);
+    }
+    36% {
+      transform: scale(1);
+      box-shadow: 0 8px 24px rgba(56, 189, 248, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15), 0 0 0 13px rgba(56, 189, 248, 0);
+    }
+  }
+
+  @keyframes chat-widget-callout-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scaleX(0.72);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scaleX(1);
+    }
   }
 
   /* Badge */
@@ -709,6 +949,11 @@
     /* Hide floating bubble when widget is open on mobile */
     .chat-widget--open .chat-widget__button {
       display: none;
+    }
+
+    .chat-widget__launcher-callout {
+      width: min(230px, calc(100vw - var(--chat-widget-button-size) - var(--chat-widget-offset-x, 10px) - 18px));
+      max-width: min(292px, calc(100vw - var(--chat-widget-button-size) - var(--chat-widget-offset-x, 10px) - 18px));
     }
 
     /* Expanded state on mobile: same fullscreen treatment */

@@ -1,4 +1,4 @@
-// Vehicle badge formatter — file kept as thcFormatter.ts to avoid renaming imports across files.
+// Vehicle badge formatter.
 
 export interface VehicleProduct {
   condition?: string;
@@ -11,18 +11,8 @@ export interface VehicleProduct {
   make?: string;
   model?: string;
   key_features?: string[];
-  // legacy wine fields — kept for TS compat, always undefined in practice
   category?: string;
-  wine_type?: string;
-  varietal?: string;
-  region?: string;
-  vintage?: number;
-  body?: string;
-  sweetness?: string;
   brand?: string;
-  tasting_notes?: string;
-  flavor_profile?: string[];
-  food_pairings?: string[];
 }
 
 export interface BadgeResult {
@@ -69,7 +59,7 @@ export function formatTypeBadge(product: VehicleProduct): BadgeResult | null {
   return null;
 }
 
-export function formatWineSubtitle(product: VehicleProduct): string | null {
+export function formatVehicleSubtitle(product: VehicleProduct): string | null {
   const parts: string[] = [];
   if (product.mileage != null && product.mileage > 0) {
     parts.push(`${product.mileage.toLocaleString()} mi`);
@@ -81,7 +71,7 @@ export function formatWineSubtitle(product: VehicleProduct): string | null {
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
-// Legacy no-op exports
+// Legacy no-op exports retained for older stories and demos.
 export function formatTHCLabel(_product: any): null { return null; }
 export function formatCBDLabel(_product: any): null { return null; }
 export function formatWeightLabel(_product: any): null { return null; }

@@ -121,12 +121,22 @@ export const CAR_EDUCATION_PANELS: Record<string, CarEducationPanel> = {
           },
           {
             id: 'hatchback',
-            title: 'Hatchback / Wagon',
-            description: 'Sedan efficiency with SUV-like cargo versatility. Rear seats fold flat.',
+            title: 'Hatchback',
+            description: 'Sedan efficiency with more flexible cargo access. Rear seats fold flat.',
             bullets: [
               'Surprisingly spacious cargo area',
               'Lower and more fun to drive than an SUV',
               'Great for people who want practicality without height',
+            ],
+          },
+          {
+            id: 'wagon',
+            title: 'Wagon',
+            description: 'Car-like driving with a long cargo area and, often, available AWD.',
+            bullets: [
+              'More cargo length than a sedan or hatchback',
+              'Lower roof and easier loading than most SUVs',
+              'Great for road trips, dogs, skis, and outdoorsy daily driving',
             ],
           },
           {
@@ -140,13 +150,33 @@ export const CAR_EDUCATION_PANELS: Record<string, CarEducationPanel> = {
             ],
           },
           {
+            id: 'van',
+            title: 'Van',
+            description: 'Best for commercial upfit, shuttle duty, delivery routes, and maximum enclosed cargo.',
+            bullets: [
+              'Cargo vans prioritize payload and shelving space',
+              'Passenger vans add rows for teams, shuttles, and large groups',
+              'Roof height and wheelbase matter more than horsepower for most work use',
+            ],
+          },
+          {
             id: 'coupe',
-            title: 'Coupe / Convertible',
+            title: 'Coupe',
             description: 'Performance-focused, lower roofline, typically 2 doors. Built for driving enjoyment.',
             bullets: [
               'Sport suspension and engine tuning standard on most trims',
               'Limited rear passenger space — best as a 2-person car',
-              'Convertibles add top-down experience at the cost of trunk space',
+              'Usually stiffer and quieter than a convertible version',
+            ],
+          },
+          {
+            id: 'convertible',
+            title: 'Convertible',
+            description: 'Top-down driving for shoppers who value experience over maximum practicality.',
+            bullets: [
+              'Best as a fun commuter, weekend car, or second vehicle',
+              'Soft tops save weight; hardtops add noise and weather protection',
+              'Check trunk space with the roof stowed',
             ],
           },
         ],

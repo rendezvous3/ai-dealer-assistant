@@ -280,7 +280,7 @@
   }
 </script>
 
-<div class={headerClasses} style="position: relative; {headerBackgroundColor ? `--chat-header-bg: ${headerBackgroundColor};` : ''}">
+<div class={headerClasses} style="position: relative; {headerBackgroundColor ? `--chat-header-bg: ${headerBackgroundColor}; --chat-header-accent: ${headerBackgroundColor};` : ''}">
   {#if hasMenuItems && menuPosition === 'left'}
     <div class={menuWrapperClasses}>
       <button
@@ -658,7 +658,12 @@
     background: linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
     color: #1f2937;
     border-bottom: 4px solid transparent;
-    border-image: linear-gradient(90deg, #16a34a 0%, #4ade80 50%, #86efac 100%) 1;
+    border-image: linear-gradient(
+      90deg,
+      var(--chat-header-accent, #3b82f6) 0%,
+      color-mix(in srgb, var(--chat-header-accent, #3b82f6) 60%, white) 55%,
+      color-mix(in srgb, var(--chat-header-accent, #3b82f6) 25%, white) 100%
+    ) 1;
     position: relative;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
@@ -670,9 +675,13 @@
     left: 0;
     width: 80px;
     height: 4px;
-    background: linear-gradient(90deg, #16a34a 0%, #4ade80 100%);
+    background: linear-gradient(
+      90deg,
+      var(--chat-header-accent, #3b82f6) 0%,
+      color-mix(in srgb, var(--chat-header-accent, #3b82f6) 60%, white) 100%
+    );
     border-radius: 0 4px 0 0;
-    box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--chat-header-accent, #3b82f6) 35%, transparent);
   }
 
   .chat-header--minimal .chat-header__close {

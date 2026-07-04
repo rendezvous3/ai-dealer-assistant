@@ -133,11 +133,14 @@
   </div>
 
   <!-- Tab strip -->
-  <div class="mb-6 flex gap-1 border-b border-white/[0.07]">
+  <div class="mb-6 flex flex-wrap gap-1 border-b border-white/[0.07]">
     <a href="/admin/chat-analytics?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Overview</a>
-    <a href="/admin/chat-analytics/queries?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Queries</a>
+    <a href="/admin/chat-analytics/demand?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicle Demand</a>
+    <a href="/admin/chat-analytics/product-lookups?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Vehicle Lookups</a>
+    <a href="/admin/chat-analytics/general-questions?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">General Questions</a>
+    <a href="/admin/chat-analytics/queries?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Raw Queries</a>
     <a href="/admin/chat-analytics/unresolved?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Unresolved</a>
-    <div class="border-b-2 border-white px-4 py-2 text-sm font-medium text-white">Products</div>
+    <div class="border-b-2 border-white px-4 py-2 text-sm font-medium text-white">Vehicles</div>
     <a href="/admin/chat-analytics/sessions?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Sessions</a>
     <a href="/admin/chat-analytics/guided-flow?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Guided Flow</a>
     <a href="/admin/chat-analytics/compliance?lane={lane}" class="px-4 py-2 text-sm text-[#737373] transition hover:text-white">Compliance</a>
@@ -145,7 +148,7 @@
 
   <!-- Filter bar -->
   <div class="mb-6 flex flex-wrap items-center gap-3">
-    <input type="text" placeholder="Search products…" bind:value={searchInput}
+    <input type="text" placeholder="Search vehicles…" bind:value={searchInput}
       on:keydown={(e) => { if (e.key === "Enter") applyFilters(); }}
       class="h-8 w-56 rounded-lg border border-white/[0.07] bg-[#141414] px-3 text-xs text-[#f5f5f5] placeholder-[#525252] outline-none focus:border-white/[0.15]" />
     <div class="flex items-center gap-1.5">
@@ -161,7 +164,7 @@
     {/if}
   </div>
 
-  <!-- Products table -->
+  <!-- Vehicles table -->
   <div class="rounded-xl border border-white/[0.07] bg-[#111111] overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-xs">
@@ -169,7 +172,7 @@
           <tr class="border-b border-white/[0.05]">
             <th class="px-4 py-2.5 text-left font-medium text-[#525252] uppercase tracking-widest">
               <button on:click={() => toggleSort("product")} class="inline-flex cursor-pointer items-center gap-1 uppercase transition hover:text-[#737373]">
-                Product
+                Vehicle
                 <svg class="h-3 w-3 {sortBy === 'product' ? 'text-[#737373]' : 'text-[#3a3a3a]'}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   {#if sortBy === "product" && sortDir === "asc"}<path d="M8 12V4M4 8l4-4 4 4"/>{:else}<path d="M8 4v8M4 8l4 4 4-4"/>{/if}
                 </svg>
@@ -226,7 +229,7 @@
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.2" />
                     <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                   </svg>
-                  Loading products…
+                  Loading vehicles…
                 </div>
               </td>
             </tr>
@@ -241,7 +244,7 @@
                 <td class="px-3 py-3 text-right text-[#737373]">{fmtDate(p.last_seen)}</td>
               </tr>
             {:else}
-              <tr><td colspan="6" class="px-5 py-8 text-center text-sm text-[#737373]">No products found</td></tr>
+              <tr><td colspan="6" class="px-5 py-8 text-center text-sm text-[#737373]">No vehicles found</td></tr>
             {/each}
           {/if}
         </tbody>
@@ -252,7 +255,7 @@
   <!-- Pagination -->
   {#if totalPages > 1}
     <div class="mt-4 flex items-center justify-between text-xs text-[#737373]">
-      <span>{total} total products</span>
+      <span>{total} total vehicles</span>
       <div class="flex gap-2">
         <button disabled={offset === 0} on:click={() => goPage(Math.max(0, offset - limit))}
           class="rounded-lg border border-white/[0.07] px-3 py-1.5 transition hover:border-white/[0.15] disabled:cursor-not-allowed disabled:opacity-40">Previous</button>

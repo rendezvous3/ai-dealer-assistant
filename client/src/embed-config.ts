@@ -2,6 +2,7 @@ export type WidgetPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top
 
 export interface EmbedConfig {
   apiBase: string;
+  assetBase: string;
   store: string;
   position: WidgetPosition;
   offsetX: string;
@@ -69,6 +70,10 @@ function normalizeBoolean(value: string | undefined | null): boolean {
   return normalized ? TRUTHY_VALUES.has(normalized) : false;
 }
 
+function stripTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
 export function resolveWidgetScript(): HTMLScriptElement | null {
   if (typeof document === 'undefined') return null;
 
@@ -92,17 +97,40 @@ export function resolveWidgetScript(): HTMLScriptElement | null {
   return null;
 }
 
+export function resolveAssetBase(script: HTMLScriptElement | null, defaultAssetBase: string): string {
+  const configuredAssetBase = normalizeOptionalString(script?.dataset.assetBase);
+  if (configuredAssetBase) return stripTrailingSlashes(configuredAssetBase);
+
+  const scriptSrc = normalizeOptionalString(script?.getAttribute('src'));
+  if (scriptSrc?.includes('widget.js')) {
+    try {
+      const url = new URL(scriptSrc, document.baseURI);
+      url.pathname = url.pathname.replace(/\/[^/]*$/, '');
+      url.search = '';
+      url.hash = '';
+      return stripTrailingSlashes(url.toString());
+    } catch {
+      return stripTrailingSlashes(defaultAssetBase);
+    }
+  }
+
+  return stripTrailingSlashes(defaultAssetBase);
+}
+
 export function parseEmbedConfig({
   script,
   defaultApiBase,
+  defaultAssetBase,
   defaultStore,
 }: {
   script: HTMLScriptElement | null;
   defaultApiBase: string;
+  defaultAssetBase: string;
   defaultStore: string;
 }): EmbedConfig {
   return {
     apiBase: normalizeOptionalString(script?.dataset.api) ?? defaultApiBase,
+    assetBase: resolveAssetBase(script, defaultAssetBase),
     store: normalizeOptionalString(script?.dataset.store) ?? defaultStore,
     position: normalizePosition(script?.dataset.position),
     offsetX: normalizeCssLength(script?.dataset.offsetX, DEFAULT_WIDGET_OFFSET),

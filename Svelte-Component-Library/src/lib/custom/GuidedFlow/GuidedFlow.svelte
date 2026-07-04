@@ -58,7 +58,7 @@
     return true;
   }
 
-  // Clean up orphaned selections when steps change (e.g., switching wine type changes available steps)
+  // Clean up orphaned selections when the configured step list changes.
   $effect(() => {
     const currentStepIds = new Set(config.steps.map(s => s.id));
     const selectionKeys = Object.keys(state.selections);
@@ -157,4 +157,3 @@
     background: #1e1e1e;
   }
 </style>
-

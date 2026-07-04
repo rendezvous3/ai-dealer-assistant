@@ -331,11 +331,11 @@
 						</div>
 					</div>
 
-					<!-- Products shown for this message -->
+					<!-- Vehicles shown for this message -->
 					{#if msg.products && msg.products.length > 0}
 						<div class="border-t border-white/[0.05] px-5 py-3">
 							<div class="mb-2 text-[10px] tracking-widest text-[#525252] uppercase">
-								Products ({msg.products.length})
+								Vehicles ({msg.products.length})
 							</div>
 							<div class="space-y-1">
 								{#each msg.products as p, pi}

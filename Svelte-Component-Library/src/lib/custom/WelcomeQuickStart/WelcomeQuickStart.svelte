@@ -18,7 +18,7 @@
     onRequestSelect
   }: WelcomeQuickStartProps = $props();
 
-  const defaultWelcome = "Welcome, ask me anything about our wines! Unsure? Explore our Guided experience, button at the bottom left.";
+  const defaultWelcome = "Welcome. Ask me anything about the inventory, or use the Guided experience from the lower-left button.";
   let displayMessage = $derived(welcomeMessage || defaultWelcome);
 </script>
 

@@ -3,10 +3,11 @@
   import ProductCard from '../ProductCard/ProductCard.svelte';
   import ProductList from '../ProductList/ProductList.svelte';
   import ProductGrid from '../ProductGrid/ProductGrid.svelte';
-  import { formatBodyBadge, formatTypeBadge, formatWineSubtitle } from './thcFormatter.js';
+  import { formatBodyBadge, formatTypeBadge, formatVehicleSubtitle } from './vehicleFormatter.js';
 
   interface Product {
     id?: string;
+    vin?: string;
     image: string;
     title: string;
     price: number;
@@ -20,22 +21,19 @@
     mileage?: number;
     engine?: string;
     year?: number;
+    make?: string;
+    model?: string;
+    trim?: string;
+    dealer_name?: string;
+    source_name?: string;
     key_features?: string[];
+    use_case_tags?: string[];
+    priority_tags?: string[];
     description?: string;
     rankPosition?: number;
-    // legacy wine fields kept for TS compat
     rating?: number;
     discount?: number;
     category?: string;
-    wine_type?: string;
-    varietal?: string;
-    region?: string;
-    vintage?: number;
-    body?: string;
-    sweetness?: string;
-    tasting_notes?: string;
-    flavor_profile?: string[];
-    food_pairings?: string[];
   }
 
   interface ProductRecommendationProps {
@@ -132,7 +130,12 @@
   }
 
   function getSubtitle(product: Product) {
-    return formatWineSubtitle(product);
+    return formatVehicleSubtitle(product);
+  }
+
+  function formatPrice(value: number | null | undefined): string {
+    if (value == null || !Number.isFinite(value)) return 'Price unavailable';
+    return `$${Math.round(value).toLocaleString()}`;
   }
 </script>
 
@@ -178,26 +181,33 @@
               {#if getSubtitle(product)}
                 <div class="product-recommendation__compact-subtitle">{getSubtitle(product)}</div>
               {/if}
+              {#if product.key_features?.length}
+                <div class="product-recommendation__compact-features">
+                  {#each product.key_features.slice(0, 2) as feature}
+                    <span class="product-recommendation__compact-feature">{feature}</span>
+                  {/each}
+                </div>
+              {/if}
               <div class="product-recommendation__compact-footer">
                 <div class="product-recommendation__compact-footer-left">
                   <div
                     class="product-recommendation__compact-price"
                     style="{effectiveThemeColor ? `color: ${effectiveThemeColor};` : ''}"
                   >
-                    ${product.price != null ? product.price.toFixed(2) : '0.00'}
+                    {formatPrice(product.price)}
                   </div>
                   {#if getBodyBadge(product)}
                     {@const bodyBadge = getBodyBadge(product)!}
-                    <div class="product-recommendation__compact-thc-badge">
-                      <div class="product-recommendation__compact-thc-label">{bodyBadge.topLabel}</div>
-                      <div class="product-recommendation__compact-thc-value">{bodyBadge.value}</div>
+                    <div class="product-recommendation__compact-attribute-badge">
+                      <div class="product-recommendation__compact-attribute-label">{bodyBadge.topLabel}</div>
+                      <div class="product-recommendation__compact-attribute-value">{bodyBadge.value}</div>
                     </div>
                   {/if}
                   {#if getTypeBadge(product)}
                     {@const typeBadge = getTypeBadge(product)!}
-                    <div class="product-recommendation__compact-thc-badge">
-                      <div class="product-recommendation__compact-thc-label">{typeBadge.topLabel}</div>
-                      <div class="product-recommendation__compact-thc-value">{typeBadge.value}</div>
+                    <div class="product-recommendation__compact-attribute-badge">
+                      <div class="product-recommendation__compact-attribute-label">{typeBadge.topLabel}</div>
+                      <div class="product-recommendation__compact-attribute-value">{typeBadge.value}</div>
                     </div>
                   {/if}
                 </div>
@@ -271,20 +281,20 @@
                   class="product-recommendation__compact-grid-price"
                   style="{effectiveThemeColor ? `color: ${effectiveThemeColor};` : ''}"
                 >
-                  ${product.price != null ? product.price.toFixed(2) : '0.00'}
+                  {formatPrice(product.price)}
                 </div>
                 {#if getBodyBadge(product)}
                   {@const bodyBadge = getBodyBadge(product)!}
-                  <div class="product-recommendation__compact-grid-thc">
-                    <div class="product-recommendation__compact-grid-thc-label">{bodyBadge.topLabel}</div>
-                    <div class="product-recommendation__compact-grid-thc-value">{bodyBadge.value}</div>
+                  <div class="product-recommendation__compact-grid-attribute">
+                    <div class="product-recommendation__compact-grid-attribute-label">{bodyBadge.topLabel}</div>
+                    <div class="product-recommendation__compact-grid-attribute-value">{bodyBadge.value}</div>
                   </div>
                 {/if}
                 {#if getTypeBadge(product)}
                   {@const typeBadge = getTypeBadge(product)!}
-                  <div class="product-recommendation__compact-grid-thc">
-                    <div class="product-recommendation__compact-grid-thc-label">{typeBadge.topLabel}</div>
-                    <div class="product-recommendation__compact-grid-thc-value">{typeBadge.value}</div>
+                  <div class="product-recommendation__compact-grid-attribute">
+                    <div class="product-recommendation__compact-grid-attribute-label">{typeBadge.topLabel}</div>
+                    <div class="product-recommendation__compact-grid-attribute-value">{typeBadge.value}</div>
                   </div>
                 {/if}
               </div>
@@ -382,7 +392,7 @@
     gap: 12px;
     padding: 12px;
     background: rgba(255, 255, 255, 0.5);
-    border-radius: 12px;
+    border-radius: 8px;
     transition: all 0.2s ease-out;
   }
 
@@ -445,9 +455,37 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
+  .product-recommendation__compact-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .product-recommendation__compact-feature {
+    max-width: 100%;
+    padding: 3px 6px;
+    border: 1px solid rgba(107, 114, 128, 0.18);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.55);
+    color: #4b5563;
+    font-size: 10px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  }
+
   :global(.dark) .product-recommendation__compact-subtitle,
   :global([data-theme="dark"]) .product-recommendation__compact-subtitle {
     color: #858585;
+  }
+
+  :global(.dark) .product-recommendation__compact-feature,
+  :global([data-theme="dark"]) .product-recommendation__compact-feature {
+    color: #cccccc;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .product-recommendation__compact-meta {
@@ -502,7 +540,7 @@
     flex-shrink: 0;
   }
 
-  .product-recommendation__compact-thc-badge {
+  .product-recommendation__compact-attribute-badge {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -514,7 +552,7 @@
     flex-shrink: 0;
   }
 
-  .product-recommendation__compact-thc-label {
+  .product-recommendation__compact-attribute-label {
     font-size: 9px;
     font-weight: 500;
     color: #111827;
@@ -524,7 +562,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
-  .product-recommendation__compact-thc-value {
+  .product-recommendation__compact-attribute-value {
     font-size: 13px;
     font-weight: 400;
     color: #111827;
@@ -532,7 +570,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
-  .product-recommendation__compact-thc-sublabel {
+  .product-recommendation__compact-attribute-sublabel {
     font-size: 8px;
     font-weight: 400;
     color: #6b7280;
@@ -541,24 +579,24 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
-  :global(.dark) .product-recommendation__compact-thc-badge,
-  :global([data-theme="dark"]) .product-recommendation__compact-thc-badge {
+  :global(.dark) .product-recommendation__compact-attribute-badge,
+  :global([data-theme="dark"]) .product-recommendation__compact-attribute-badge {
     background: #2d2d30;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  :global(.dark) .product-recommendation__compact-thc-label,
-  :global([data-theme="dark"]) .product-recommendation__compact-thc-label {
+  :global(.dark) .product-recommendation__compact-attribute-label,
+  :global([data-theme="dark"]) .product-recommendation__compact-attribute-label {
     color: #cccccc;
   }
 
-  :global(.dark) .product-recommendation__compact-thc-value,
-  :global([data-theme="dark"]) .product-recommendation__compact-thc-value {
+  :global(.dark) .product-recommendation__compact-attribute-value,
+  :global([data-theme="dark"]) .product-recommendation__compact-attribute-value {
     color: #cccccc;
   }
 
-  :global(.dark) .product-recommendation__compact-thc-sublabel,
-  :global([data-theme="dark"]) .product-recommendation__compact-thc-sublabel {
+  :global(.dark) .product-recommendation__compact-attribute-sublabel,
+  :global([data-theme="dark"]) .product-recommendation__compact-attribute-sublabel {
     color: #858585;
   }
 
@@ -595,7 +633,7 @@
     padding: 10px 16px;
     background: transparent;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     color: #6b7280;
     font-size: 13px;
     font-weight: 500;
@@ -643,7 +681,7 @@
     display: flex;
     flex-direction: column;
     background: rgba(255, 255, 255, 0.5);
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
     transition: all 0.2s ease-out;
   }
@@ -748,7 +786,7 @@
     white-space: nowrap;
   }
 
-  .product-recommendation__compact-grid-thc {
+  .product-recommendation__compact-grid-attribute {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -760,7 +798,7 @@
     flex-shrink: 0;
   }
 
-  .product-recommendation__compact-grid-thc-label {
+  .product-recommendation__compact-grid-attribute-label {
     font-size: 8px;
     font-weight: 500;
     color: #111827;
@@ -770,7 +808,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
-  .product-recommendation__compact-grid-thc-value {
+  .product-recommendation__compact-grid-attribute-value {
     font-size: 12px;
     font-weight: 400;
     color: #111827;
@@ -778,7 +816,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   }
 
-  .product-recommendation__compact-grid-thc-sublabel {
+  .product-recommendation__compact-grid-attribute-sublabel {
     font-size: 7px;
     font-weight: 400;
     color: #6b7280;
@@ -866,20 +904,20 @@
       font-size: 15px;
     }
 
-    .product-recommendation__compact-thc-badge {
+    .product-recommendation__compact-attribute-badge {
       padding: 4px 5px;
       min-width: 38px;
     }
 
-    .product-recommendation__compact-thc-value {
+    .product-recommendation__compact-attribute-value {
       font-size: 12px;
     }
 
-    .product-recommendation__compact-thc-label {
+    .product-recommendation__compact-attribute-label {
       font-size: 8px;
     }
 
-    .product-recommendation__compact-thc-sublabel {
+    .product-recommendation__compact-attribute-sublabel {
       font-size: 7px;
     }
 

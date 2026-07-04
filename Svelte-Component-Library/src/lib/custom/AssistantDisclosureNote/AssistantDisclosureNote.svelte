@@ -4,7 +4,7 @@
   }
 
   let {
-    text = 'AI assistant is for experimental use only. Do not request it to provide medical advice. Please review our AI and medical disclosures for full details. AI can make mistakes.'
+    text = 'AI assistant is for experimental use only. Verify availability, pricing, fees, financing, and vehicle history with the selling dealer. AI can make mistakes.'
   }: AssistantDisclosureNoteProps = $props();
 </script>
 
@@ -15,7 +15,7 @@
 <style>
   .assistant-disclosure-note {
     border: 1px solid #2b3139;
-    border-radius: 10px;
+    border-radius: 8px;
     background: #171a1f;
     padding: 9px 10px;
   }

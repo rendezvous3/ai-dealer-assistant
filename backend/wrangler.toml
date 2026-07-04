@@ -8,6 +8,12 @@ port = 9743
 
 [vars]
 PROFILE_TYPE = "MERCHANT"
+ENVIRONMENT = "qa"
+SHOP_BASE_URL = "http://localhost:5173"
+STORE_STATE = "co"
+ALLOWED_STORE_IDS = "mountain-motors"
+DEFAULT_STORE_ID = "mountain-motors"
+UNKNOWN_STORE_ID = "unknown"
 
 # Vehicle catalog — D1 database
 [[d1_databases]]

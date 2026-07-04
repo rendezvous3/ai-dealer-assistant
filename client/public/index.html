@@ -3,17 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cannavita AI Budtender - Demo</title>
+    <title>AI Dealer Assistant - Demo</title>
     <style>
       :root {
-        --page-bg: #ffffff;
-        --panel-bg: #1f2023;
-        --panel-border: #2f3339;
-        --panel-text: #e5e8ed;
-        --muted-text: #b0b8c3;
-        --accent: #2fd47f;
-        --chip-bg: #262b33;
-        --chip-border: #3a4350;
+        --page-bg: #f6f7f8;
+        --panel-bg: #ffffff;
+        --panel-border: #d7dde6;
+        --panel-text: #17202a;
+        --muted-text: #5d6673;
+        --accent: #b96524;
+        --chip-bg: #f2f4f7;
+        --chip-border: #d7dde6;
       }
 
       * {
@@ -34,7 +34,7 @@
         margin: 0 auto;
         background: var(--panel-bg);
         border: 1px solid var(--panel-border);
-        border-radius: 16px;
+        border-radius: 8px;
         padding: 28px;
         box-shadow: 0 24px 50px rgba(0, 0, 0, 0.14);
       }
@@ -53,11 +53,11 @@
       }
 
       .notice {
-        border: 1px solid #355f4c;
-        background: #1f3028;
-        color: #ccefe0;
+        border: 1px solid #e5c49f;
+        background: #fff6ec;
+        color: #5c3416;
         padding: 12px 14px;
-        border-radius: 10px;
+        border-radius: 8px;
         margin-bottom: 22px;
         font-size: 0.95rem;
       }
@@ -116,8 +116,8 @@
   </head>
   <body>
     <div class="container">
-      <h1>Cannavita AI Budtender</h1>
-      <p class="subtitle">Your intelligent cannabis shopping assistant</p>
+      <h1>AI Dealer Assistant</h1>
+      <p class="subtitle">Vehicle shopping support backed by sourced inventory records</p>
 
       <div class="notice">
         Look for the chat widget in the bottom-right corner.
@@ -126,38 +126,38 @@
       <section class="section">
         <h2>Try asking</h2>
         <div class="prompt-grid">
-          <div class="prompt">What are your hours?</div>
-          <div class="prompt">Show me relaxing flower</div>
-          <div class="prompt">I want energetic edibles</div>
-          <div class="prompt">What are the strongest vapes you have?</div>
-          <div class="prompt">Tell me about focused, clear minded products</div>
-          <div class="prompt">Recommend a calming pre-roll</div>
+          <div class="prompt">I need a family SUV under $40,000</div>
+          <div class="prompt">Show me efficient hybrids</div>
+          <div class="prompt">Find a truck for towing and work</div>
+          <div class="prompt">Compare the RAV4 Hybrid and CR-V</div>
+          <div class="prompt">What EV sedans do you have?</div>
+          <div class="prompt">Recommend a reliable minivan</div>
         </div>
       </section>
 
       <section class="section">
         <h2>Features</h2>
         <ul class="feature-list">
-          <li>Natural product guidance conversations</li>
-          <li>Recommendation cards tied to inventory context</li>
-          <li>Quick-start prompts for common shopping goals</li>
+          <li>Natural vehicle guidance conversations</li>
+          <li>Recommendation cards tied to sourced inventory context</li>
+          <li>Quick-start prompts for common automotive shopping goals</li>
         </ul>
       </section>
     </div>
 
-    <!-- Cannavita Widget -->
+    <!-- Dealer Assistant Widget -->
     <script
       id="ecom-widget-script"
       type="module"
       src="/widget.js"
-      data-store="cannavita"
+      data-store="dealer-poc"
       data-position="bottom-right"
       data-offset-x="24"
       data-offset-y="24"
       data-z-index="2147483000"
       data-width="426"
       data-height="702"
-      data-launcher-label="Open Cannavita chat">
+      data-launcher-label="Open AI Dealer Assistant">
     </script>
   </body>
 </html>

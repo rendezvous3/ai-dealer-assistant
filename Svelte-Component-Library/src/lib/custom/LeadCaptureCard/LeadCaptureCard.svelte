@@ -23,13 +23,13 @@
   let heading = $derived(
     profileType === 'brand_concierge'
       ? 'Stay updated on new releases'
-      : 'Get personalized wine picks'
+      : 'Get personalized vehicle picks'
   );
 
   let subtext = $derived(
     profileType === 'brand_concierge'
       ? 'Join our mailing list for exclusive offers and early access.'
-      : 'We\'ll send you curated recommendations based on your taste.'
+      : 'We\'ll send you curated recommendations based on your shopping goals.'
   );
 
   async function handleSubmit() {
