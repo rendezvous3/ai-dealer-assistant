@@ -31,7 +31,35 @@
 		prev_unresolved_rate: null as number | null
 	};
 
+	const emptyQuality = {
+		tables: {} as Record<string, boolean>,
+		totals: {
+			sessions: 0,
+			messages: 0,
+			sequences: 0,
+			product_rows: 0,
+			events: 0,
+			leads: 0,
+			recommendation_messages: 0,
+			messages_with_products: 0
+		},
+		health: {
+			product_message_coverage_rate: 0,
+			guided_completion_rate: 0,
+			orphan_total: 0,
+			orphan_messages: 0,
+			orphan_sequences: 0,
+			orphan_products: 0,
+			blank_normalized_messages: 0,
+			error_messages: 0
+		},
+		guided_flow: { submitted: 0, completed: 0 },
+		top_fallback_reasons: [] as { reason: string; count: number }[],
+		top_event_types: [] as { event_type: string; count: number }[]
+	};
+
 	let overview = { ...emptyOverview };
+	let quality = { ...emptyQuality };
 	let buckets: string[] = [];
 	let loading = true;
 
@@ -57,19 +85,24 @@
 		const qs = filterParams.toString();
 
 		try {
-			const [ovRes, bRes] = await Promise.all([
+			const [ovRes, bRes, qRes] = await Promise.all([
 				fetch(`/admin/chat-analytics/_api/overview${qs ? `?${qs}` : ''}`)
 					.then((r) => (r.ok ? r.json() : null))
 					.catch(() => null),
 				fetch(`/admin/chat-analytics/_api/buckets${lane ? `?lane=${lane}` : ''}`)
 					.then((r) => (r.ok ? r.json() : null))
+					.catch(() => null),
+				fetch(`/admin/chat-analytics/_api/data-quality${qs ? `?${qs}` : ''}`)
+					.then((r) => (r.ok ? r.json() : null))
 					.catch(() => null)
 			]);
 			overview = ovRes ?? { ...emptyOverview };
+			quality = qRes ?? { ...emptyQuality };
 			if (!overview.top_buckets) overview.top_buckets = [];
 			buckets = bRes?.buckets ?? [];
 		} catch {
 			overview = { ...emptyOverview };
+			quality = { ...emptyQuality };
 			buckets = [];
 		}
 		loading = false;
@@ -145,6 +178,12 @@
 
 	function refusalTone(count: number): 'default' | 'green' | 'yellow' | 'red' {
 		return count > 0 ? 'yellow' : 'green';
+	}
+
+	function healthTone(value: number, warning: number, danger: number): 'default' | 'green' | 'yellow' | 'red' {
+		if (value >= danger) return 'red';
+		if (value >= warning) return 'yellow';
+		return 'green';
 	}
 
 	function fmtDelta(current: number, previous: number | null | undefined): string {
@@ -500,6 +539,42 @@
 				label="Top Bucket"
 				value={overview.top_buckets[0]?.bucket ?? '—'}
 				sub="{overview.top_buckets[0]?.count ?? 0} queries"
+			/>
+		</InsightShellV3>
+
+		<InsightShellV3
+			title="Tracking Health"
+			caption="Data collection checks across sessions, messages, product rows, events, and guided flow"
+			cols={5}
+		>
+			<InsightCardV3
+				label="Product Row Coverage"
+				value="{quality.health.product_message_coverage_rate}%"
+				sub={`${quality.totals.messages_with_products.toLocaleString()} / ${quality.totals.recommendation_messages.toLocaleString()} recommendation or lookup messages`}
+				tone={quality.health.product_message_coverage_rate >= 80 || quality.totals.recommendation_messages === 0 ? 'green' : quality.health.product_message_coverage_rate >= 50 ? 'yellow' : 'red'}
+			/>
+			<InsightCardV3
+				label="Orphan Rows"
+				value={quality.health.orphan_total.toLocaleString()}
+				sub={`${quality.health.orphan_messages.toLocaleString()} messages · ${quality.health.orphan_sequences.toLocaleString()} sequences · ${quality.health.orphan_products.toLocaleString()} products`}
+				tone={healthTone(quality.health.orphan_total, 1, 10)}
+			/>
+			<InsightCardV3
+				label="Message Errors"
+				value={quality.health.error_messages.toLocaleString()}
+				sub={`${quality.health.blank_normalized_messages.toLocaleString()} blank normalized query rows`}
+				tone={healthTone(quality.health.error_messages + quality.health.blank_normalized_messages, 1, 10)}
+			/>
+			<InsightCardV3
+				label="Guided Completion"
+				value="{quality.health.guided_completion_rate}%"
+				sub={`${quality.guided_flow.completed.toLocaleString()} / ${quality.guided_flow.submitted.toLocaleString()} guided submissions`}
+				tone={quality.guided_flow.submitted === 0 || quality.health.guided_completion_rate >= 70 ? 'green' : quality.health.guided_completion_rate >= 40 ? 'yellow' : 'red'}
+			/>
+			<InsightCardV3
+				label="Event Rows"
+				value={quality.totals.events.toLocaleString()}
+				sub={quality.top_event_types[0] ? `${quality.top_event_types[0].event_type}: ${quality.top_event_types[0].count}` : 'no event rows yet'}
 			/>
 		</InsightShellV3>
 

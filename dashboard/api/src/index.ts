@@ -42,6 +42,13 @@ const COMPLIANCE_CATEGORIES = [
   'abuse'
 ];
 
+const DEMAND_ROLLUP_LABELS = {
+  make: 'Top Make',
+  body_type: 'Top Body',
+  fuel_type: 'Top Fuel',
+  priority: 'Top Priority'
+};
+
 function dbFor(c: { env: Bindings; req: { query(name: string): string | undefined } }): D1Database | null {
   const lane = (c.req.query('lane') || 'qa').toLowerCase();
   if (lane === 'prod') {
@@ -537,6 +544,118 @@ app.get('/chat-analytics/queries', async (c) => {
       last_seen: row.last_seen || null
     })),
     total
+  });
+});
+
+app.get('/chat-analytics/data-quality', async (c) => {
+  const db = dbFor(c);
+  if (!db) return noDb(c);
+  const startedAfter = c.req.query('started_after') || undefined;
+  const startedBefore = c.req.query('started_before') || undefined;
+
+  const hasSessions = await hasTable(db, 'chat_sessions');
+  const hasMessages = await hasTable(db, 'chat_messages');
+  const hasSequences = await hasTable(db, 'chat_search_sequences');
+  const hasProducts = await hasTable(db, 'chat_message_products');
+  const hasEvents = await hasTable(db, 'chat_events');
+  const hasLeads = await hasTable(db, 'chat_leads');
+
+  const messageWhere = where(timeClauses('m.created_at', startedAfter, startedBefore));
+  const sessionWhere = where(timeClauses('s.started_at', startedAfter, startedBefore));
+  const sequenceWhere = where(timeClauses('sq.started_at', startedAfter, startedBefore));
+  const productWhereSql = where(timeClauses('p.shown_at', startedAfter, startedBefore));
+  const eventWhereSql = where(timeClauses('e.occurred_at', startedAfter, startedBefore));
+
+  const sessions = hasSessions ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_sessions s${sessionWhere}`), 'count') : 0;
+  const messages = hasMessages ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_messages m${messageWhere}`), 'count') : 0;
+  const sequences = hasSequences ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_search_sequences sq${sequenceWhere}`), 'count') : 0;
+  const productRows = hasProducts ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_message_products p${productWhereSql}`), 'count') : 0;
+  const events = hasEvents ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_events e${eventWhereSql}`), 'count') : 0;
+  const leads = hasLeads ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_leads`), 'count') : 0;
+
+  const recommendationMessageClauses = [
+    `(m.predicted_cue IN ('RECOMMEND', 'PRODUCT_LOOKUP') OR m.predicted_intent IN ('recommendation', 'surprise', 'product-question', 'product-context-question'))`,
+    ...timeClauses('m.created_at', startedAfter, startedBefore)
+  ];
+  const recommendationMessages = hasMessages
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_messages m${where(recommendationMessageClauses)}`), 'count')
+    : 0;
+  const messagesWithProducts = hasProducts
+    ? rowInt(await first(db, `SELECT COUNT(DISTINCT p.message_id) AS count FROM chat_message_products p${productWhereSql}`), 'count')
+    : 0;
+
+  const orphanMessages = hasMessages && hasSessions
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_messages m LEFT JOIN chat_sessions s ON s.session_id = m.session_id${where([...timeClauses('m.created_at', startedAfter, startedBefore), 's.session_id IS NULL'])}`), 'count')
+    : 0;
+  const orphanSequences = hasSequences && hasSessions
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_search_sequences sq LEFT JOIN chat_sessions s ON s.session_id = sq.session_id${where([...timeClauses('sq.started_at', startedAfter, startedBefore), 's.session_id IS NULL'])}`), 'count')
+    : 0;
+  const orphanProducts = hasProducts && hasMessages
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_message_products p LEFT JOIN chat_messages m ON m.message_id = p.message_id${where([...timeClauses('p.shown_at', startedAfter, startedBefore), 'm.message_id IS NULL'])}`), 'count')
+    : 0;
+  const blankNormalizedMessages = hasMessages
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_messages m${where([...timeClauses('m.created_at', startedAfter, startedBefore), "(m.user_text_normalized IS NULL OR TRIM(m.user_text_normalized) = '')"])}`), 'count')
+    : 0;
+  const errorMessages = hasMessages
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_messages m${where([...timeClauses('m.created_at', startedAfter, startedBefore), "(m.status = 'error' OR (m.error_code IS NOT NULL AND TRIM(m.error_code) != ''))"])}`), 'count')
+    : 0;
+
+  const guidedSubmitted = hasEvents
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_events e${where(["e.event_type = 'guided_flow_submitted'", ...timeClauses('e.occurred_at', startedAfter, startedBefore)])}`), 'count')
+    : 0;
+  const guidedCompleted = hasEvents
+    ? rowInt(await first(db, `SELECT COUNT(*) AS count FROM chat_events e${where(["e.event_type = 'guided_flow_completed'", ...timeClauses('e.occurred_at', startedAfter, startedBefore)])}`), 'count')
+    : 0;
+
+  const topFallbackReasons = hasMessages
+    ? (await all(
+        db,
+        `SELECT fallback_reason, COUNT(*) AS count FROM chat_messages m${where([...timeClauses('m.created_at', startedAfter, startedBefore), "fallback_reason IS NOT NULL", "TRIM(fallback_reason) != ''"])} GROUP BY fallback_reason ORDER BY count DESC LIMIT 10`
+      )).map((row) => ({ reason: String(row.fallback_reason || ''), count: rowInt(row, 'count') }))
+    : [];
+  const topEventTypes = hasEvents
+    ? (await all(
+        db,
+        `SELECT event_type, COUNT(*) AS count FROM chat_events e${eventWhereSql} GROUP BY event_type ORDER BY count DESC LIMIT 10`
+      )).map((row) => ({ event_type: String(row.event_type || ''), count: rowInt(row, 'count') }))
+    : [];
+
+  const orphanTotal = orphanMessages + orphanSequences + orphanProducts;
+  return c.json({
+    tables: {
+      chat_sessions: hasSessions,
+      chat_messages: hasMessages,
+      chat_search_sequences: hasSequences,
+      chat_message_products: hasProducts,
+      chat_events: hasEvents,
+      chat_leads: hasLeads
+    },
+    totals: {
+      sessions,
+      messages,
+      sequences,
+      product_rows: productRows,
+      events,
+      leads,
+      recommendation_messages: recommendationMessages,
+      messages_with_products: messagesWithProducts
+    },
+    health: {
+      product_message_coverage_rate: safeRate(messagesWithProducts, recommendationMessages),
+      guided_completion_rate: safeRate(guidedCompleted, guidedSubmitted),
+      orphan_total: orphanTotal,
+      orphan_messages: orphanMessages,
+      orphan_sequences: orphanSequences,
+      orphan_products: orphanProducts,
+      blank_normalized_messages: blankNormalizedMessages,
+      error_messages: errorMessages
+    },
+    guided_flow: {
+      submitted: guidedSubmitted,
+      completed: guidedCompleted
+    },
+    top_fallback_reasons: topFallbackReasons,
+    top_event_types: topEventTypes
   });
 });
 
@@ -1051,7 +1170,7 @@ app.get('/chat-analytics/compliance/tuning', async (c) => {
 app.get('/chat-analytics/product-demand', async (c) => {
   const db = dbFor(c);
   if (!db) return noDb(c);
-  if (!(await hasTable(db, 'chat_messages'))) return c.json({ demand: [], total: 0, rollups: { make: [], body_type: [], fuel_type: [], priority: [] } });
+  if (!(await hasTable(db, 'chat_messages'))) return c.json({ demand: [], total: 0, rollup_labels: DEMAND_ROLLUP_LABELS, rollups: { make: [], body_type: [], fuel_type: [], priority: [] } });
 
   const limit = intParam(c.req.query('limit'), 50, 1, 200);
   const offset = intParam(c.req.query('offset'), 0, 0, 100000);
@@ -1159,6 +1278,7 @@ app.get('/chat-analytics/product-demand', async (c) => {
   return c.json({
     demand: sorted.slice(offset, offset + limit),
     total: sorted.length,
+    rollup_labels: DEMAND_ROLLUP_LABELS,
     rollups: {
       make: rollup(rollups.make),
       body_type: rollup(rollups.body_type),

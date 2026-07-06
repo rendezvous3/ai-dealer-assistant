@@ -11,6 +11,12 @@
 
 	let rows: any[] = [];
 	let rollups: any = { make: [], body_type: [], fuel_type: [], priority: [] };
+	let rollupLabels: any = {
+		make: 'Top Make',
+		body_type: 'Top Body',
+		fuel_type: 'Top Fuel',
+		priority: 'Top Priority'
+	};
 	let total = 0;
 	let loading = true;
 
@@ -39,6 +45,7 @@
 			rows = json?.demand ?? [];
 			total = json?.total ?? 0;
 			rollups = json?.rollups ?? rollups;
+			rollupLabels = json?.rollup_labels ?? rollupLabels;
 		} catch {
 			rows = [];
 			total = 0;
@@ -140,10 +147,10 @@
 	</div>
 
 	<InsightShellV3 title="Demand Rollups" caption="Most requested vehicle attributes" cols={4}>
-		<InsightCardV3 label="Top Make" value={topLabel(rollups.make)} sub={`${rollups.make?.[0]?.count ?? 0} requests`} />
-		<InsightCardV3 label="Top Body" value={topLabel(rollups.body_type)} sub={`${rollups.body_type?.[0]?.count ?? 0} requests`} />
-		<InsightCardV3 label="Top Fuel" value={topLabel(rollups.fuel_type)} sub={`${rollups.fuel_type?.[0]?.count ?? 0} requests`} />
-		<InsightCardV3 label="Top Priority" value={topLabel(rollups.priority)} sub={`${rollups.priority?.[0]?.count ?? 0} requests`} />
+		<InsightCardV3 label={rollupLabels.make} value={topLabel(rollups.make)} sub={`${rollups.make?.[0]?.count ?? 0} requests`} />
+		<InsightCardV3 label={rollupLabels.body_type} value={topLabel(rollups.body_type)} sub={`${rollups.body_type?.[0]?.count ?? 0} requests`} />
+		<InsightCardV3 label={rollupLabels.fuel_type} value={topLabel(rollups.fuel_type)} sub={`${rollups.fuel_type?.[0]?.count ?? 0} requests`} />
+		<InsightCardV3 label={rollupLabels.priority} value={topLabel(rollups.priority)} sub={`${rollups.priority?.[0]?.count ?? 0} requests`} />
 	</InsightShellV3>
 
 	<div class="mt-7 overflow-hidden rounded-xl border border-white/[0.07] bg-[#111111]">
